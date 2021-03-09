@@ -16,11 +16,13 @@ with open(file1, 'w') as csv_file:
     csvwriter.writerow(["id,source,destination,path,delay,amount"])
 
 
+# populate the graph from the snapshot
 G = nx.DiGraph()
 G,m = pg.populate_nodes(G)
 G,m1=pg.populate_channels(G,m,645320)
 G = pg.populate_policies(G,m1)
 
+# curate nodes and channels removing channels that are closed and those that do not have public policies
 G1 = nx.DiGraph()
 for [u,v] in G.edges():
     if(G.edges[u,v]["marked"]==1 and G.edges[v,u]["marked"]==1):
@@ -44,6 +46,7 @@ for [u,v] in G.edges():
         G1.edges[u, v]["Delay"] = G.edges[u, v]["Delay"]
         G1.edges[u, v]["id"] = G.edges[u, v]["id"]
         
+# Simulate the payment, try to de-anonymize if the adversary is encountered and fail if any of the balances are not sufficient        
 def route(G,path,delay,amt,ads,ind):
     print(path[0])
     G.edges[path[0],path[1]]["Balance"] -= amt
@@ -86,6 +89,7 @@ def route(G,path,delay,amt,ads,ind):
 
 
 i = 0
+# list of adversaries with a mix of nodes with high centrality, low centrality and random nodes
 ads = [2634, 8075, 5347, 1083, 5093,4326, 4126, 2836, 5361, 10572,5389, 3599, 9819, 4828, 3474, 8808, 93, 9530, 9515, 2163]
 while(i<=10000):
     u = -1
@@ -93,6 +97,7 @@ while(i<=10000):
     while (u == v or (u not in G1.nodes()) or (v not in G1.nodes())):
         u = rn.randint(0, 11197)
         v = rn.randint(0, 11197)
+    # Try to get an exponential distribution for transaction amounts
     if (i % 5 == 1):
         amt = rn.randint(1, 10)
     elif (i % 5 == 2):
