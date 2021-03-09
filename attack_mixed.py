@@ -50,24 +50,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
     T[0]["previous"] = [-1]
     T[0]["visited"] = [[pre,adversary,next]]
     T[0]["amounts"] = [amount]
-    #pr = pf.edge_prob(G.edges[pre,adversary]["LastFailure"])*pf.edge_prob(G.edges[adversary,next]["LastFailure"])
-    #T[0]["probs"] = [pr]
     x = -1
-    # if T[0]["delays"][0] == 0:
-        # maybe_targets[index]["target"] = next
-        # maybe_targets[index]["path"] = [adversary,next]
-        # maybe_targets[index]["delay"] = delay
-        # maybe_targets[index]["amt"] = amount
-        # maybe_targets[index]["tech"] = 0
-        # maybe_targets[index]["sources"] = source_reveal(G, [pre, adversary,next], 0, 0, amount, pre, next,adversary)
-        # index += 1
-        # paths = pf.Dijkstra_all_paths(G,next,amount,pf.lnd_cost_fun)
-        # for u in paths:
-        #     if pre in paths[u]:
-        #         ind = paths[u].index(pre)
-        #         if(paths[u][ind:] == [pre,adversary,next]):
-        #             anon_sets[index] = [u,next]
-        #             print("match",u,next)
 
     paths = nd.nested_dict()
     num_paths = 0
@@ -92,29 +75,14 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         pr2 = []
         for i in range(0,len(t1)):
             u = t1[i]
-            # if v1[i] == []:
-            #     print(u)
-            #     print("yes",u)
             for [u,v] in G.out_edges(u):
-                #print(v)
-                # p = p1[i]
-                # flag1 = 0
-                # level2 = level - 2
-                # while(level2>=1):
-                #     if(T[level2]["nodes"][p] == v):
-                #         flag1 = 1
-                #         break
-                #     else:
-                #         p = T[level2]["previous"][p]
-                #         level2 = level2 - 1
-                #pr = pf.edge_prob(G.edges[u,v]["LastFailure"])*pr1[i]
                 if(v!=pre and v!=adversary  and v!=next and v not in v1[i] and (d1[i] - G.edges[u,v]["Delay"])>=0 and (G.edges[u,v]["Balance"]+G.edges[v,u]["Balance"])>=((a1[i] - G.edges[u, v]["BaseFee"]) / (1 + G.edges[u, v]["FeeRate"]))):
                     t2.append(v)
                     d2.append(d1[i] - G.edges[u,v]["Delay"])
                     p2.append(i)
                     v2.append(v1[i]+[v])
                     a2.append(((a1[i] - G.edges[u, v]["BaseFee"]) / (1 + G.edges[u, v]["FeeRate"])))
-                    #pr2.append(pr)
+          
         T[level]["nodes"] = t2
         #print(level,t2,d2)
         T[level]["delays"] = d2
@@ -134,8 +102,6 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         a = T[level]["amounts"]
         v = T[level]["visited"]
         print(level)
-        # if(level == 0):
-        #     print(t,d)
         for i in range(0, len(t)):
             if(d[i] == 0):
                 path = []
@@ -152,8 +118,6 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
                     #print(path, level)
                     amt = a[i]
                     pot = path[len(path) - 1]
-                    # if pot == 10515:
-                    #     print(path,level)
                     sources_lnd = deanonymize_lnd(G,pot,path,amt)
                     if sources_lnd != []:
                         print("match",pot,"lnd")
@@ -169,33 +133,14 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
                                 sources_c = sources_c + s
                             fuzz+=0.2
                     sources_c = list(set(sources_c))
-                     # sources_c = deanonymize_c(G,pot,path,amt,-1)
                     if sources_c != []:
                         print("match",pot,"c",fuzz)
                         anon_sets[pot]["c"] = list(set(sources_c))
-                    # if pot == 10892:
-                    #     print(pot,"yes",amt)
                     sources_ecl = deanonymize_ecl(G,pot,path,amt)
 
                     if sources_ecl != []:
                         print("match",pot,"ecl")
                         anon_sets[pot]["ecl"] = list(sources_ecl)
-                    # if paths == [pre, adversary] + path:
-                    #     maybe_targets[index]["target"] = pot
-                    #     maybe_targets[index]["path"] = [adversary] + path
-                    #     maybe_targets[index]["delay"] = delay
-                    #     maybe_targets[index]["amt"] = amt
-                    #     maybe_targets[index]["tech"] = 0
-                    #     maybe_targets[index]["sources"] = source_reveal(G, [pre, adversary] + path, 0, 0, amt, pre, next,
-                    #                                                     adversary)
-                    #     index += 1
-                    # for u in paths:
-                    #     if pre in paths[u]:
-                    #         ind = paths[u].index(pre)
-                    #         if paths[u][ind:] == [pre,adversary] + path:
-                    #             anon_sets[index] = [u,pot]
-                    #             index+=1
-                    #             print("match",u,pot)
         level = level - 1
     return anon_sets,flag1
 
@@ -444,11 +389,6 @@ def deanonymize_ecl(G,target,pa,amt):
             d = delay2[curr]
             a = amount2[curr]
             di = dist2[curr]
-        # if curr == 9591 or curr == 2417:
-        #     if target == 10515:
-        #         print(curr,p)
-        # if(curr == pre or curr ==adv):
-        #     print(p,curr)
         visited[curr] += 1
         for [v, curr] in G.in_edges(curr):
             if done[v] == 0 and G.nodes[v]["Tech"] == 2:
@@ -460,8 +400,6 @@ def deanonymize_ecl(G,target,pa,amt):
             elif done[v] == 2 and G.nodes[v]["Tech"] == 2:
                 path2[v] = [v] + p
                 done[v] = 3
-            # if v == 6963 and target == 10515:
-            #     print([v]+p)
             if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= a) and visited[v] < 3 and v not in p:
                 cost = di + pf.eclair_cost_fun(G, a, curr, v)
 
@@ -495,8 +433,6 @@ def deanonymize_ecl(G,target,pa,amt):
                     delay2[v] = G.edges[v, curr]["Delay"] + d
                     amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
                     pq.put((dist2[v], v))
-        # if (curr == 2336 or curr == 7728 or curr == 4146):
-        #     print(curr, p)
         if(curr in pa[1:]):
             ind = pa.index(curr)
             if visited[curr] == 3:
@@ -529,41 +465,5 @@ def deanonymize_ecl(G,target,pa,amt):
                                 sources.append(v)
                     else:
                         print("error")
-                # if visited[curr] == 3:
-                #     if G.nodes[pre]["Tech"] == 2:
-                #         sources.append(pre)
-                #     er = 0
-                #     if pre in paths[curr]:
-                #         ind = paths[curr].index(pre)
-                #         if paths[curr][ind:] == pa:
-                #         #     print("error")
-                #         # else:
-                #             for [v,curr] in G.in_edges(curr):
-                #                 if v not in paths[curr] and G.nodes[v]["Tech"] == 2:
-                #                     sources.append(v)
-                #         else:
-                #             er+=1
-                #     if pre in paths1[curr]:
-                #         ind = paths1[curr].index(pre)
-                #         if paths1[curr][ind:] == pa:
-                #         #     print("error")
-                #         # else:
-                #             for [v,curr] in G.in_edges(curr):
-                #                 if v not in paths1[curr] and G.nodes[v]["Tech"] == 2:
-                #                     sources.append(v)
-                #         else:
-                #             er+=1
-                #     if pre in paths2[curr]:
-                #         ind = paths2[curr].index(pre)
-                #         if paths2[curr][ind:] == pa:
-                #         #     print("error")
-                #         # else:
-                #             for [v,curr] in G.in_edges(curr):
-                #                 if v not in paths2[curr] and G.nodes[v]["Tech"] == 2:
-                #                     sources.append(v)
-                #         else:
-                #             er+=1
-                #     if er == 3:
-                #         print("error",curr)
     sources = list(set(sources))
     return sources
