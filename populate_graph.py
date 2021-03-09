@@ -9,7 +9,7 @@ import string
 import re
 import ast
 
-
+# read node information and initialize the graph with the nodes
 def populate_nodes(G, tech=-1):
     node_list = []
     map = dict()
@@ -41,7 +41,7 @@ def populate_nodes(G, tech=-1):
             line += 1
     return G, map
 
-
+# Add channel information with age and total capacities
 def populate_channels(G, map, cbr):
     map1 = dict()
     with open("channels.csv", 'r') as csv_file:
@@ -78,7 +78,7 @@ def populate_channels(G, map, cbr):
             line += 1
     return G, map1
 
-
+# add fee and delay policies
 def populate_policies(G, map):
     with open("policies.csv", 'r') as csv_file:
         csvreader = csv.reader(csv_file)
