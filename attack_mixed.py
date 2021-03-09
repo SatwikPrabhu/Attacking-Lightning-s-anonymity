@@ -22,28 +22,22 @@ DELAY_RATIO = 0.15
 CAPACITY_RATIO = 0.5
 AGE_RATIO = 0.35
 
-
+# Function to normalize a a value between max and min
 def normalize(val, min, max):
     if val <= min:
         return 0.00001
     if val > max:
         return 0.99999
     return (val - min) / (max - min)
-def tr_amt(G,path,amt):
-    for i in range(0,len(path)-1):
-        amt = ((amt - G.edges[path[i], path[i + 1]]["BaseFee"]) / (1 + G.edges[path[i], path[i + 1]]["FeeRate"]))
-    return amt
 
-
-
-
-
+# Function that identifies each potential destination based on a depth first search and the potential senders for each destination
 def dest_reveal_new(G,adversary,delay,amount,pre,next):
     T = nd.nested_dict()
     flag1 = True
     anon_sets = nd.nested_dict()
     level = 0
     index = 0
+    # Level 0 only contains the next node
     T[0]["nodes"] = [next]
     T[0]["delays"] = [delay]
     print(delay)
@@ -58,6 +52,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
 
     while(flag):
         level+=1
+        # Stop when level is greater than 3 - it takes forever otherwise
         if(level == 4):
             flag1 = False
             break
@@ -76,6 +71,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         for i in range(0,len(t1)):
             u = t1[i]
             for [u,v] in G.out_edges(u):
+                # Checks if v is not repeating in the same path, delay after visiting v is not negative and the capacity condition is true after deducting fees
                 if(v!=pre and v!=adversary  and v!=next and v not in v1[i] and (d1[i] - G.edges[u,v]["Delay"])>=0 and (G.edges[u,v]["Balance"]+G.edges[v,u]["Balance"])>=((a1[i] - G.edges[u, v]["BaseFee"]) / (1 + G.edges[u, v]["FeeRate"]))):
                     t2.append(v)
                     d2.append(d1[i] - G.edges[u,v]["Delay"])
@@ -92,6 +88,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         #T[level]["probs"] = pr2
         #print(t2,d2,p2)
         print(level,len(t2))
+        # Stop if the current level has 0 nodes
         if(len(t2) == 0):
             flag = False
     level = level - 1
@@ -103,6 +100,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         v = T[level]["visited"]
         print(level)
         for i in range(0, len(t)):
+            # Potential destination if delay is 0
             if(d[i] == 0):
                 path = []
                 level1 = level
@@ -114,14 +112,17 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
                     loc = T[level1]["previous"][loc]
                 path.reverse()
                 path = [pre,adversary]+path
+                # Double check that path is loop free
                 if (len(path) == len(set(path))):
                     #print(path, level)
                     amt = a[i]
                     pot = path[len(path) - 1]
+                    # For each destination find the sources that would use this subpath using either lnd,c-lightning or eclair
                     sources_lnd = deanonymize_lnd(G,pot,path,amt)
                     if sources_lnd != []:
                         print("match",pot,"lnd")
                         anon_sets[pot]["lnd"] = list(sources_lnd)
+                    # Check for more fuzz values only if the anonymity sets do not match for fuzz values -1 and 1
                     fuzz = -0.8
                     sources_c = deanonymize_c(G,pot,path,amt,-1)
                     sources_c1 = deanonymize_c(G,pot,path,amt,1)
@@ -144,6 +145,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         level = level - 1
     return anon_sets,flag1
 
+# Returns potential sources that would use lnd to reach target using the subpath found
 def deanonymize_lnd(G,target,path,amt):
     pq = PriorityQueue()
     delays = {}
@@ -203,6 +205,7 @@ def deanonymize_lnd(G,target,path,amt):
                     costs[v] = costs[curr] + G.edges[v, curr]["BaseFee"] + costs[curr] * G.edges[v, curr]["FeeRate"]
                     # prob[v] = pf.edge_prob(G.edges[v,curr]["LastFailure"])*prob[curr]
                     pq.put((dists[v],v))
+        # If at any point the sub-path found is not found to be optimal, this is definetely not the destination if using lnd
         if(curr in path[1:]):
             ind = path.index(curr)
             if(paths[curr]!=path[ind:]):
@@ -212,13 +215,16 @@ def deanonymize_lnd(G,target,path,amt):
         if(curr == pre):
             flag2 = 1
         if flag1 == 1 and flag2 == 1:
+            # If pre is not an intermediary, then it must be the source
             if paths[pre] != path:
                 if G.nodes[pre]["Tech"] !=0:
                     return []
                 return [pre]
             else:
+                # pre could still be one of the sources
                 if G.nodes[pre]["Tech"] ==0:
                     sources.append(pre)
+                # fill remaining possible sources
                 if pre in paths[curr]:
                     ind = paths[curr].index(pre)
                     if paths[curr][ind:] != path:
@@ -230,6 +236,7 @@ def deanonymize_lnd(G,target,path,amt):
     sources = list(set(sources))
     return sources
 
+# Returns potential sources that would use c-Lightning to reach target using the subpath found
 def deanonymize_c(G,target,path,amt,fuzz):
     pq = PriorityQueue()
     cost_function = pf.c_cost_fun(fuzz)
@@ -280,6 +287,7 @@ def deanonymize_c(G,target,path,amt,fuzz):
                     costs[v] = costs[curr] + G.edges[v, curr]["BaseFee"] + costs[curr] * G.edges[v, curr]["FeeRate"]
                     # prob[v] = pf.edge_prob(G.edges[v,curr]["LastFailure"])*prob[curr]
                     pq.put((dists[v],v))
+        # If at any point the sub-path found is not found to be optimal, this is definetely not the destination if using c-lightning
         if(curr in path[1:]):
             ind = path.index(curr)
             if(paths[curr]!=path[ind:]):
@@ -291,13 +299,16 @@ def deanonymize_c(G,target,path,amt,fuzz):
         if(curr == pre):
             flag2 = 1
         if flag1 == 1 and flag2 == 1:
+            # If pre is not an intermediary, then it must be the source
             if paths[pre] != path:
                 if G.nodes[pre]["Tech"] != 1:
                     return []
                 return [pre]
             else:
+                # pre could still be one of the sources
                 if G.nodes[pre]["Tech"] == 1:
                     sources.append(pre)
+                # fill remaining possible sources
                 if pre in paths[curr]:
                     ind = paths[curr].index(pre)
                     if paths[curr][ind:] != path:
@@ -309,6 +320,7 @@ def deanonymize_c(G,target,path,amt,fuzz):
     sources = list(set(sources))
     return sources
 
+# Returns potential sources that would use Eclair to reach target using the subpath found
 def deanonymize_ecl(G,target,pa,amt):
     paths = {}
     paths1 = {}
@@ -433,11 +445,13 @@ def deanonymize_ecl(G,target,pa,amt):
                     delay2[v] = G.edges[v, curr]["Delay"] + d
                     amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
                     pq.put((dist2[v], v))
+        # If none of the three best paths satisfy the sub-path found then the destination cannot be reached using Eclair
         if(curr in pa[1:]):
             ind = pa.index(curr)
             if visited[curr] == 3:
                 if (paths[curr] != pa[ind:] and paths1[curr] != pa[ind:] and paths2[curr] != pa[ind:]):
                     return []
+            # If we find a match, then we do not need to look for other paths from curr
             if pa[ind:] == p:
                 visited[curr] = 3
                 if curr == adv:
@@ -449,13 +463,16 @@ def deanonymize_ecl(G,target,pa,amt):
                 flag2 = 1
             # print(paths[curr], paths1[curr], paths2[curr])
         if flag1 == 1 and flag2 == 1:
+            # If pre is not an intermediary, then it must be the source
             if paths[pre] != pa and paths1[pre]!=pa and paths2[pre]!=pa:
                 if G.nodes[pre]["Tech"] != 2:
                     return []
                 return [pre]
             else:
+                # pre could still be a source
                 if G.nodes[pre]["Tech"] == 2:
                     sources.append(pre)
+                # fill remaining possible sources
                 if pre in p:
                     ind = p.index(pre)
                     if p[ind:] == pa:
