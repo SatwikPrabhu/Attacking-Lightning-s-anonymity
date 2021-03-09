@@ -33,7 +33,7 @@ DELAY_RATIO = 0.15
 CAPACITY_RATIO = 0.5
 AGE_RATIO = 0.35
 
-
+# normalize between max and min
 def normalize(val, min, max):
     if val <= min:
         return 0.00001
@@ -41,6 +41,7 @@ def normalize(val, min, max):
         return 0.99999
     return (val - min) / (max - min)
 
+# compute probability for the edge to succeed based on t- time of last failure
 def edge_prob(t):
     if t<1:
         return 0
@@ -48,24 +49,28 @@ def edge_prob(t):
         return 0.6
     return (A_PRIORI_PROB * (1 - 1 / (2 ** t)))
 
+# reassign channnel weight based on the edge probability
 def prob_bias(dist,prob):
     if prob < 0.00001:
         return inf
     return dist+(100/prob)
 
+# cost function for shortest path
 def shortest_cost_fun(G,amount,prev,u,v,direct_conn=False):
     return 1
 
+# cost function for least-delay path
 def least_delay_cost_fun(G,amount,prev,u,v,direct_conn=False):
     return G.edges[v,u]["Delay"]
 
+# cost function for cheapest path
 def cheapest_cost_fun(G,amount,prev,u,v,direct_conn=False):
     if(direct_conn):
         return 0
     fee = G.edges[u, prev]['BaseFee'] + amount[u] * G.edges[u, prev]['FeeRate']
     return fee
 
-
+# cost function for lnd
 def lnd_cost_fun(G, amount, u, v):
     # if direct_conn:
     #     return amount[v] * G.edges[v, u]["Delay"] * LND_RISK_FACTOR
@@ -79,6 +84,7 @@ def lnd_cost_fun(G, amount, u, v):
     # alt = prob_bias(alt,edge_proba)
     return alt
 
+#cost function for c-Lightning
 def c_cost_fun(fuzzfactor):
     def fun(G, amount, u, v):
         # if direct_conn:
@@ -90,6 +96,7 @@ def c_cost_fun(fuzzfactor):
     return fun
 
 
+#cost function for eclair
 def eclair_cost_fun(G, amount, u, v):
     # if direct_conn:
     #     return 0
@@ -100,17 +107,7 @@ def eclair_cost_fun(G, amount, u, v):
     alt = fee * (ndelay * DELAY_RATIO + ncapacity * CAPACITY_RATIO + nage * AGE_RATIO)
     return alt
 
-def fee_cost_fun(G, amount, prev, u, v, direct_conn=False):
-    if direct_conn:
-        return 0
-    fee = G.edges[u, prev]['BaseFee'] + amount[u] * G.edges[u, prev]['FeeRate']
-    return fee
-
-
-def delay_cost_fun(G, amount, prev, u, v, direct_conn=False):
-    return G.edges[v, u]["Delay"]
-
-
+# Build complete path using the previous list
 def build_path(u, previous):
     path = []
     while previous[u] != -1:
@@ -121,28 +118,7 @@ def build_path(u, previous):
     path.append(u)
     return path
 
-
-
-
-def calc_params(G, path, amt):
-    cost = amt
-    #print(path)
-    delay = 0
-    dist = 0
-    for i in range(len(path)-2,0,-1):
-        #print(path[i],path[i+1])
-        #print(G.edges[path[i],path[i+1]]["FeeRate"])
-        fee = cost * G.edges[path[i], path[i+1]]["FeeRate"] + G.edges[path[i], path[i+1]]["BaseFee"]
-
-        ndelay = normalize(G.edges[path[i], path[i+1]]["Delay"], MIN_DELAY, MAX_DELAY)
-        ncapacity = normalize((G.edges[path[i], path[i+1]]["Balance"] + G.edges[path[i], path[i+1]]["Balance"]), MIN_CAP, MAX_CAP)
-        nage = normalize(CBR - G.edges[path[i], path[i+1]]["Age"], MIN_AGE, MAX_AGE)
-
-        dist += fee * (ndelay * DELAY_RATIO + ncapacity * CAPACITY_RATIO + nage * AGE_RATIO)
-        delay += G.edges[path[i],path[i+1]]["Delay"]
-        cost += fee
-    return dist
-
+# Find the best path based on the cost function using Dijkstra algo
 def Dijkstra(G,source,target,amt,cost_function):
     paths = {}
     dist = {}
@@ -206,65 +182,7 @@ def Dijkstra(G,source,target,amt,cost_function):
                     pq.put((dist[v],v))
     return [],-1,-1,-1
 
-def Dijkstra_all_paths(G,target,amt,cost_function):
-    paths = {}
-    dist = {}
-    delay = {}
-    amount = {}
-    done = {}
-    prev = {}
-    # prob = {}
-    visited = set()
-    for node in G.nodes():
-        amount[node] = -1
-        delay[node] = -1
-        dist[node] = inf
-        done[node] = 0
-        prev[node] = -1
-        # prob[node] = 1
-    if cost_function == lnd_cost_fun(prob=1):
-        tech = 0
-    elif cost_function ==eclair_cost_fun:
-        tech = 2
-    else:
-        tech = 1
-    visited = set()
-    pq = PriorityQueue()
-    dist[target] = 0
-    delay[target] = 0
-    # print(dist[target])
-    paths[target] = [target]
-    # print(dist[target])
-    amount[target] = amt
-    done[target] = 1
-    # print(dist[target],amount[target])
-    pq.put((dist[target], target))
-    # print(dist[target])
-    # print(pq)
-    while 0 != pq.qsize():
-        curr_cost, curr = pq.get()
-        # print(pq)
-        if curr_cost > dist[curr]:
-            continue
-        visited.add(curr)
-        #print(curr)
-        for [v, curr] in G.in_edges(curr):
-            if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= amount[curr]) and v not in visited:
-                if(done[v] == 0 and G.nodes[v]["Tech"] == tech):
-                    paths[v] = [v] + build_path(curr,prev)
-                    done[v] = 1
-                cost = dist[curr] + cost_function(G, amount[curr], curr, v)
-                if cost < dist[v]:
-                    dist[v] = cost
-                    prev[v] = curr
-                    delay[v] = G.edges[v, curr]["Delay"] + delay[curr]
-                    amount[v] = amount[curr] + G.edges[v, curr]["BaseFee"] + amount[curr] * G.edges[v, curr]["FeeRate"]
-                    # t = G.edges[v, curr]["LastFailure"]
-                    # edge = edge_prob(t)
-                    # prob[v] = edge * prob[curr]
-                    pq.put((dist[v], v))
-    return paths
-
+# Original eclair implementation using yen's algorithm
 def Eclair(G, source, target, amt, path=None):
     G1 = G.copy()
     B = nd.nested_dict()
@@ -341,6 +259,7 @@ def Eclair(G, source, target, amt, path=None):
     return B
 
 
+# modifying eclair's implementation to apply yen's algorithm starting from the destination instead of the source
 def modifiedEclair(G, source, target, amt, path=None):
     G1 = G.copy()
     B = nd.nested_dict()
@@ -416,6 +335,7 @@ def modifiedEclair(G, source, target, amt, path=None):
             B[k] = p
     return B
 
+# Generalized Dijkstra for 3 best paths - alternative to yen's algo
 def Dijkstra_general(G,source,target,amt,cost_function):
     paths = {}
     paths1 = {}
@@ -531,122 +451,3 @@ def Dijkstra_general(G,source,target,amt,cost_function):
                     pq.put((dist2[v], v))
     return [], -1, -1, -1
 
-def Dijkstra_general_all_paths(G,target,amt,cost_function):
-    paths = {}
-    paths1 = {}
-    paths2 = {}
-    path = {}
-    path1 = {}
-    path2 = {}
-    dist = {}
-    dist1 = {}
-    dist2  = {}
-    delay = {}
-    delay1 = {}
-    delay2 = {}
-    amount = {}
-    amount1 = {}
-    amount2 = {}
-    visited = {}
-    done = {}
-    for node in G.nodes():
-        amount[node] = -1
-        amount1[node] = -1
-        amount2[node] = -1
-        delay[node] = -1
-        delay1[node] = -1
-        delay2[node] = -1
-        dist[node] = inf
-        dist1[node] = inf
-        dist2[node] = inf
-        visited[node] = 0
-        paths[node] = []
-        paths1[node] = []
-        paths2[node] = []
-        done[node] = 0
-    prev = {}
-    pq = PriorityQueue()
-    dist[target] = 0
-    dist1[target] = 0
-    dist2[target] = 0
-    delay[target] = 0
-    delay1[target] = 0
-    delay2[target] = 0
-    # print(dist[target])
-    paths[target] = [target]
-    paths1[target] = [target]
-    paths2[target] = [target]
-    # print(dist[target])
-    amount[target] = amt
-    amount1[target] = amt
-    amount2[target] = amt
-    # print(dist[target],amount[target])
-    pq.put((dist[target], target))
-    # print(dist[target])
-    # print(pq)
-    while 0 != pq.qsize():
-        curr_cost, curr = pq.get()
-        # print(curr)
-        # print(pq)
-        if curr_cost > dist2[curr]:
-            continue
-        if visited[curr] == 0:
-            p = paths[curr]
-            d = delay[curr]
-            a = amount[curr]
-            di = dist[curr]
-        elif visited[curr] == 1:
-            p = paths1[curr]
-            d = delay1[curr]
-            a = amount1[curr]
-            di = dist1[curr]
-        elif visited[curr] == 2:
-            p = paths2[curr]
-            d = delay2[curr]
-            a = amount2[curr]
-            di = dist2[curr]
-        visited[curr]+=1
-        for [v, curr] in G.in_edges(curr):
-            if done[v] == 0 and G.nodes[v]["Tech"] == 2:
-                path[v] = [v] + p
-                done[v] = 1
-            elif done[v] == 1 and G.nodes[v]["Tech"] == 2:
-                path1[v] = [v] + p
-                done[v] = 2
-            elif done[v] == 2 and G.nodes[v]["Tech"] == 2:
-                path2[v] = [v] + p
-                done[v] = 3
-            if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= a) and visited[v]<3 and v not in p:
-                cost = di + cost_function(G, a, curr, v)
-
-                if cost < dist[v]:
-                    dist2[v] = dist1[v]
-                    paths2[v] = paths1[v]
-                    delay2[v] = delay1[v]
-                    amount2[v] = amount1[v]
-                    dist1[v] = dist[v]
-                    paths1[v] = paths[v]
-                    delay1[v] = delay[v]
-                    amount1[v] = amount[v]
-                    dist[v] = cost
-                    paths[v] = [v] + p
-                    delay[v] = G.edges[v, curr]["Delay"] + d
-                    amount[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
-                    pq.put((dist[v], v))
-                elif cost < dist1[v]:
-                    dist2[v] = dist1[v]
-                    paths2[v] = paths1[v]
-                    delay2[v] = delay1[v]
-                    amount2[v] = amount1[v]
-                    dist1[v] = cost
-                    paths1[v] = [v] + p
-                    delay1[v] = G.edges[v, curr]["Delay"] + d
-                    amount1[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
-                    pq.put((dist1[v], v))
-                elif cost < dist2[v]:
-                    dist2[v] = cost
-                    paths2[v] = [v] + p
-                    delay2[v] = G.edges[v, curr]["Delay"] + d
-                    amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
-                    pq.put((dist2[v], v))
-    return path,path1,path2
