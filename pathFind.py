@@ -337,19 +337,7 @@ def Eclair(G, source, target, amt, path=None):
         if p == None:
             break
         else:
-            # minpath = paths[0]["Path"]
-            # mincost = paths[0]["Dist"]
-            # index = -1
-            # for i in range(1, leng):
-            #     if mincost > paths[i]["Dist"] and paths[i]["visited"] == 0:
-            #         mincost = paths[i]["Dist"]
-            #         minpath = paths[i]["Path"]
-            #         index = i
-            # paths[index]["visited"] = 1
             B[k] = p
-            #print(minpath,mincost)
-    # print(B[0]["Path"], B[1]["Path"], B[2]["Path"])
-    #print(len(B))
     return B
 
 
@@ -425,19 +413,7 @@ def modifiedEclair(G, source, target, amt, path=None):
         if p == None:
             break
         else:
-            # minpath = paths[0]["Path"]
-            # mincost = paths[0]["Dist"]
-            # index = -1
-            # for i in range(1, leng):
-            #     if mincost > paths[i]["Dist"] and paths[i]["visited"] == 0:
-            #         mincost = paths[i]["Dist"]
-            #         minpath = paths[i]["Path"]
-            #         index = i
-            # paths[index]["visited"] = 1
             B[k] = p
-            #print(minpath,mincost)
-    # print(B[0]["Path"], B[1]["Path"], B[2]["Path"])
-    #print(len(B))
     return B
 
 def Dijkstra_general(G,source,target,amt,cost_function):
