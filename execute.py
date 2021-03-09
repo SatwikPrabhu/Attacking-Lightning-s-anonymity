@@ -22,11 +22,6 @@ G,m1=pg.populate_channels(G,m,645320)
 G = pg.populate_policies(G,m1)
 
 G1 = nx.DiGraph()
-# for node in G.nodes():
-#     G1.add_node(node)
-#     G1.nodes[node]["name"] = G.nodes[node]["name"]
-#     G1.nodes[node]["pubadd"] = G.nodes[node]["pubadd"]
-#     G1.nodes[node]["Tech"] = G.nodes[node]["Tech"]
 for [u,v] in G.edges():
     if(G.edges[u,v]["marked"]==1 and G.edges[v,u]["marked"]==1):
         if (u not in G1.nodes()):
@@ -48,20 +43,7 @@ for [u,v] in G.edges():
         G1.edges[u, v]["FeeRate"] = G.edges[u, v]["FeeRate"]
         G1.edges[u, v]["Delay"] = G.edges[u, v]["Delay"]
         G1.edges[u, v]["id"] = G.edges[u, v]["id"]
-# count1=0
-# count2=0
-# count3=0
-# count4=0
-# for u in G1.nodes():
-#     if(G1.nodes[u]["Tech"] == 0):
-#         count1+=1
-#     elif(G1.nodes[u]["Tech"] == 1):
-#         count2+=1
-#     elif (G1.nodes[u]["Tech"] == 2):
-#         count3 += 1
-#     else:
-#         count4+=1
-# print(count1,count2,count3,count4)
+        
 def route(G,path,delay,amt,ads,ind):
     print(path[0])
     G.edges[path[0],path[1]]["Balance"] -= amt
@@ -111,10 +93,6 @@ while(i<=10000):
     while (u == v or (u not in G1.nodes()) or (v not in G1.nodes())):
         u = rn.randint(0, 11197)
         v = rn.randint(0, 11197)
-        # if(u!=v):
-        # i+=1
-    # u = 6963
-    # v = 10515
     if (i % 5 == 1):
         amt = rn.randint(1, 10)
     elif (i % 5 == 2):
@@ -125,9 +103,6 @@ while(i<=10000):
         amt = rn.randint(1000, 10000)
     else:
         amt = rn.randint(10000, 100000)
-    # u = 9792
-    # v = 10892
-    # amt = 1682
     print(u,v,amt)
     if(G1.nodes[u]["Tech"] == 0):
         path, delay, amount,dist = pf.Dijkstra(G1, u, v, amt,pf.lnd_cost_fun)
@@ -161,7 +136,4 @@ while(i<=10000):
         with open(file1, 'a') as csv_file:
             csvwriter = csv.writer(csv_file)
             csvwriter.writerow([i, u, v, path, delay, amt,G1.nodes[u]["Tech"],T])
-        #d, c, di = pf.calc_params(G1, path, amt)
-        #print(path, delay, d, 0)
-        #at.tr_at_adv(G1, path, ads, amount, delay, i, file)
         i += 1
