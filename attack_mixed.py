@@ -22,7 +22,7 @@ DELAY_RATIO = 0.15
 CAPACITY_RATIO = 0.5
 AGE_RATIO = 0.35
 
-# Function to normalize a a value between max and min
+# Function to normalize a a value between max and min - used by Eclair
 def normalize(val, min, max):
     if val <= min:
         return 0.00001
@@ -30,7 +30,11 @@ def normalize(val, min, max):
         return 0.99999
     return (val - min) / (max - min)
 
-# Function that identifies each potential destination based on a depth first search and the potential senders for each destination
+# Function that identifies each potential destination based on a depth first search and the potential senders for each destination.
+# The search begins from the next node and considers all nodes that have loopless paths the given delay from the next node(excluding the previous node and the adversary)
+# as potential destinations.
+# For each potential destination, the set of sources that would use the same sub-path that we found during the search using either lnd, c-lightning or eclair
+# by calling the respective deanoniyize functions.
 def dest_reveal_new(G,adversary,delay,amount,pre,next):
     T = nd.nested_dict()
     flag1 = True
@@ -48,6 +52,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
 
     paths = nd.nested_dict()
     num_paths = 0
+    # flag to indicate that going further would result only in invalid nodes as the delay limit is reached for all nodes in the current level
     flag = True
 
     while(flag):
@@ -71,7 +76,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         for i in range(0,len(t1)):
             u = t1[i]
             for [u,v] in G.out_edges(u):
-                # Checks if v is not repeating in the same path, delay after visiting v is not negative and the capacity condition is true after deducting fees
+                # Checks if v is not repeating in the same path, delay limit is not reached after visiting v and the capacity condition is true after deducting fees
                 if(v!=pre and v!=adversary  and v!=next and v not in v1[i] and (d1[i] - G.edges[u,v]["Delay"])>=0 and (G.edges[u,v]["Balance"]+G.edges[v,u]["Balance"])>=((a1[i] - G.edges[u, v]["BaseFee"]) / (1 + G.edges[u, v]["FeeRate"]))):
                     t2.append(v)
                     d2.append(d1[i] - G.edges[u,v]["Delay"])
@@ -98,10 +103,11 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         p = T[level]["previous"]
         a = T[level]["amounts"]
         v = T[level]["visited"]
-        print(level)
+        #print(level)
         for i in range(0, len(t)):
             # Potential destination if delay is 0
             if(d[i] == 0):
+                #construct the path found from the next node to the destination
                 path = []
                 level1 = level
                 path.append(T[level1]["nodes"][i])
@@ -111,6 +117,7 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
                     path.append(T[level1]["nodes"][loc])
                     loc = T[level1]["previous"][loc]
                 path.reverse()
+                # Add pre and adversary to the start of the path
                 path = [pre,adversary]+path
                 # Double check that path is loop free
                 if (len(path) == len(set(path))):
@@ -145,7 +152,9 @@ def dest_reveal_new(G,adversary,delay,amount,pre,next):
         level = level - 1
     return anon_sets,flag1
 
-# Returns potential sources that would use lnd to reach target using the subpath found
+# Returns potential sources that would use lnd to reach target using the subpath found. The key idea here is that we implement all sources Dijkstra for the given target
+# and the transaction amount. If at any point we find a discrepency between the found path and the path constructed using dijkstra for any node in the sub-path found, 
+# the target cannot be the real destination. If the complete sub-path matches the dijkstra condition, we proceed to find all possible sources that use this samme sub-path.
 def deanonymize_lnd(G,target,path,amt):
     pq = PriorityQueue()
     delays = {}
@@ -203,9 +212,9 @@ def deanonymize_lnd(G,target,path,amt):
                     dists[v] = cost
                     delays[v] = delays[curr] + G.edges[v,curr]["Delay"]
                     costs[v] = costs[curr] + G.edges[v, curr]["BaseFee"] + costs[curr] * G.edges[v, curr]["FeeRate"]
-                    # prob[v] = pf.edge_prob(G.edges[v,curr]["LastFailure"])*prob[curr]
                     pq.put((dists[v],v))
-        # If at any point the sub-path found is not found to be optimal, this is definetely not the destination if using lnd
+        # If at any point the sub-path found is not found to be optimal, this is definetely not the destination if using lnd since the sub-path from an intermediary to 
+        # the destination has to be the cheapest path from the intermediary to the destination.
         if(curr in path[1:]):
             ind = path.index(curr)
             if(paths[curr]!=path[ind:]):
@@ -213,30 +222,28 @@ def deanonymize_lnd(G,target,path,amt):
             if curr == adv:
                 flag1 = 1
         if(curr == pre):
-            flag2 = 1
-        if flag1 == 1 and flag2 == 1:
-            # If pre is not an intermediary, then it must be the source
+            # If pre is the source, the path from pre need to not match the path found since, the cost from the source to the second node is computed differently.
+            # Moreover, the source would not choose the absolute cheapest path since the first hop may not have sufficient forward balance. 
+            # Thus, pre has to be the source if the paths dont match, since the paths would only match if pre is an intermediary.
             if paths[pre] != path:
-                if G.nodes[pre]["Tech"] !=0:
-                    return []
                 return [pre]
             else:
-                # pre could still be one of the sources
-                if G.nodes[pre]["Tech"] ==0:
-                    sources.append(pre)
-                # fill remaining possible sources
-                if pre in paths[curr]:
-                    ind = paths[curr].index(pre)
-                    if paths[curr][ind:] != path:
-                        print("error")
-                    else:
-                        for [v,curr] in G.in_edges(curr):
-                            if v not in paths[curr] and G.nodes[v]["Tech"] == 0:
-                                sources.append(v)
+                # if the paths do match, pre is just one possible source
+                sources.append(pre)
+            flag2 = 1
+        if flag1 == 1 and flag2 == 1:
+            # since if pre is in the path from curr, the path from pre has to match the path we had found as it is the cheapest path from pre. This measns that curr
+            # is a valid second node. So, all neighbors of curr that have not occured in the path are potential sources.
+            if pre in paths[curr]:
+                for [v,curr] in G.in_edges(curr):
+                        if v not in paths[curr]:
+                            sources.append(v)
     sources = list(set(sources))
     return sources
 
-# Returns potential sources that would use c-Lightning to reach target using the subpath found
+# Returns potential sources that would use lnd to reach target using the subpath found. The key idea here is that we implement all sources Dijkstra for the given target
+# and the transaction amount. If at any point we find a discrepency between the found path and the path constructed using dijkstra for any node in the sub-path found, 
+# the target cannot be the real destination. If the complete sub-path matches the dijkstra condition, we proceed to find all possible sources that use this samme sub-path.
 def deanonymize_c(G,target,path,amt,fuzz):
     pq = PriorityQueue()
     cost_function = pf.c_cost_fun(fuzz)
@@ -287,40 +294,35 @@ def deanonymize_c(G,target,path,amt,fuzz):
                     costs[v] = costs[curr] + G.edges[v, curr]["BaseFee"] + costs[curr] * G.edges[v, curr]["FeeRate"]
                     # prob[v] = pf.edge_prob(G.edges[v,curr]["LastFailure"])*prob[curr]
                     pq.put((dists[v],v))
-        # If at any point the sub-path found is not found to be optimal, this is definetely not the destination if using c-lightning
+        # If at any point the sub-path found is not found to be optimal, this is definetely not the destination if using lnd since the sub-path from an intermediary to 
+        # the destination has to be the cheapest path from the intermediary to the destination.
         if(curr in path[1:]):
             ind = path.index(curr)
             if(paths[curr]!=path[ind:]):
                 return []
             if curr == adv:
                 flag1 = 1
-        # if flag1 == 1:
-        #     print("path", paths[adv])
         if(curr == pre):
-            flag2 = 1
-        if flag1 == 1 and flag2 == 1:
-            # If pre is not an intermediary, then it must be the source
+            # If pre is the source, the path from pre need to not match the path found since, the cost from the source to the second node is computed differently.
+            # Moreover, the source would not choose the absolute cheapest path since the first hop may not have sufficient forward balance. 
+            # Thus, pre has to be the source if the paths dont match, since the paths would only match if pre is an intermediary.
             if paths[pre] != path:
-                if G.nodes[pre]["Tech"] != 1:
-                    return []
                 return [pre]
             else:
-                # pre could still be one of the sources
-                if G.nodes[pre]["Tech"] == 1:
-                    sources.append(pre)
-                # fill remaining possible sources
-                if pre in paths[curr]:
-                    ind = paths[curr].index(pre)
-                    if paths[curr][ind:] != path:
-                        print("error")
-                    else:
-                        for [v,curr] in G.in_edges(curr):
-                            if v not in paths[curr] and G.nodes[v]["Tech"] == 1:
-                                sources.append(v)
+                # if the paths do match, pre is just one possible source
+                sources.append(pre)
+            flag2 = 1
+        if flag1 == 1 and flag2 == 1:
+            # since if pre is in the path from curr, the path from pre has to match the path we had found as it is the cheapest path from pre. This measns that curr
+            # is a valid second node. So, all neighbors of curr that have not occured in the path are potential sources.
+            if pre in paths[curr]:
+                for [v,curr] in G.in_edges(curr):
+                        if v not in paths[curr]:
+                            sources.append(v)
     sources = list(set(sources))
     return sources
 
-# Returns potential sources that would use Eclair to reach target using the subpath found
+# Returns potential sources that would use lnd to reach target using the subpath found. 
 def deanonymize_ecl(G,target,pa,amt):
     paths = {}
     paths1 = {}
