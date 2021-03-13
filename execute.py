@@ -5,6 +5,7 @@ import networkx as nx
 import csv
 import random as rn
 
+#Files that store details of all transactions and all attack results
 file = "results_mixed.csv"
 file1 = "transactions_mixed.csv"
 
@@ -89,15 +90,16 @@ def route(G,path,delay,amt,ads,ind):
 
 
 i = 0
-# list of adversaries with a mix of nodes with high centrality, low centrality and random nodes
+# list of adversaries with a mix of nodes with high centrality, low centrality and random nodes. This can be changed as per requirement. Same goes for the number of transactions.
 ads = [2634, 8075, 5347, 1083, 5093,4326, 4126, 2836, 5361, 10572,5389, 3599, 9819, 4828, 3474, 8808, 93, 9530, 9515, 2163]
 while(i<=10000):
     u = -1
     v = -1
+    # We go for random source/destination pairs. This can be changed to having a biased choice as well
     while (u == v or (u not in G1.nodes()) or (v not in G1.nodes())):
         u = rn.randint(0, 11197)
         v = rn.randint(0, 11197)
-    # Try to get an exponential distribution for transaction amounts
+    # Try to get an exponential distribution for transaction amounts. This can be changed as well.
     if (i % 5 == 1):
         amt = rn.randint(1, 10)
     elif (i % 5 == 2):
@@ -109,6 +111,7 @@ while(i<=10000):
     else:
         amt = rn.randint(10000, 100000)
     print(u,v,amt)
+    #Compute the paths as per the cost function
     if(G1.nodes[u]["Tech"] == 0):
         path, delay, amount,dist = pf.Dijkstra(G1, u, v, amt,pf.lnd_cost_fun)
     elif(G1.nodes[u]["Tech"] == 1):
@@ -132,6 +135,7 @@ while(i<=10000):
                 delay += G1.edges[path[m], path[m + 1]]["Delay"]
                 amount += G1.edges[path[m], path[m + 1]]["BaseFee"] + amount * G1.edges[path[m], path[m + 1]]["FeeRate"]
             delay += G1.edges[path[0], path[1]]["Delay"]
+    #If the path is of length 2, then a simple redistribution of balances, else we call the route function.
     if (len(path) == 2):
         G1.edges[u, v]["Balance"] -= amt
         G1.edges[v, u]["Balance"] += amt
