@@ -41,7 +41,7 @@ def normalize(val, min, max):
         return 0.99999
     return (val - min) / (max - min)
 
-# compute probability for the edge to succeed based on t- time of last failure
+# compute probability for the edge to succeed based on t- time of last failure. This is not used in our simulation
 def edge_prob(t):
     if t<1:
         return 0
@@ -49,28 +49,13 @@ def edge_prob(t):
         return 0.6
     return (A_PRIORI_PROB * (1 - 1 / (2 ** t)))
 
-# reassign channnel weight based on the edge probability
+# reassign channnel weight based on the edge probability. Not used in our simmulation
 def prob_bias(dist,prob):
     if prob < 0.00001:
         return inf
     return dist+(100/prob)
 
-# cost function for shortest path
-def shortest_cost_fun(G,amount,prev,u,v,direct_conn=False):
-    return 1
-
-# cost function for least-delay path
-def least_delay_cost_fun(G,amount,prev,u,v,direct_conn=False):
-    return G.edges[v,u]["Delay"]
-
-# cost function for cheapest path
-def cheapest_cost_fun(G,amount,prev,u,v,direct_conn=False):
-    if(direct_conn):
-        return 0
-    fee = G.edges[u, prev]['BaseFee'] + amount[u] * G.edges[u, prev]['FeeRate']
-    return fee
-
-# cost function for lnd
+# cost function for lnd. We ignore the probability bias aspect for now
 def lnd_cost_fun(G, amount, u, v):
     # if direct_conn:
     #     return amount[v] * G.edges[v, u]["Delay"] * LND_RISK_FACTOR
@@ -118,7 +103,7 @@ def build_path(u, previous):
     path.append(u)
     return path
 
-# Find the best path based on the cost function using Dijkstra algo
+# Find the best path based on the cost function using Dijkstra algo using priority queues
 def Dijkstra(G,source,target,amt,cost_function):
     paths = {}
     dist = {}
@@ -156,6 +141,7 @@ def Dijkstra(G,source,target,amt,cost_function):
         for [v,curr] in G.in_edges(curr):
             if v == source and G.edges[v,curr]["Balance"]>=amount[curr]:
                 #print(curr)
+                # Cost is computed differently for the first hop since the source doesnt take fees.
                 if(G.nodes[source]["Tech"] == 0):
                     cost = dist[curr] + amount[curr]*G.edges[v,curr]["Delay"]*LND_RISK_FACTOR
                 elif(G.nodes[source]["Tech"] == 1):
@@ -259,7 +245,7 @@ def Eclair(G, source, target, amt, path=None):
     return B
 
 
-# modifying eclair's implementation to apply yen's algorithm starting from the destination instead of the source
+# modifying eclair's implementation to apply yen's algorithm with the spurnode moving from the destination to the source. Eclair originally does it the other way around.
 def modifiedEclair(G, source, target, amt, path=None):
     G1 = G.copy()
     B = nd.nested_dict()
