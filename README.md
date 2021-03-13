@@ -4,7 +4,9 @@ An attack that enables an intermediary to break the anonymity of the source and 
 
 This includes a simulator to simulate transactions using **LND**(https://github.com/lightningnetwork/lnd/blob/master/routing/pathfind.go), **c-Lightning**(https://github.com/ElementsProject/lightning/blob/f3159ec4acd1013427c292038b88071b868ab1ff/common/route.c) and **Eclair**(https://github.com/ACINQ/eclair/blob/master/eclair-core/src/main/scala/fr/acinq/eclair/router/Router.scala). 
 
-We modify Eclair to use a generalized version of Dijkstra's algorithm instead of using Yen's algorithm. We do not have code to simulate concurrent payments yet. 
+All path finding algorithms are based on the Dijkstra's algorithm using a priority queue(https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm).
+
+We modify Eclair to use a generalized version of Dijkstra's algorithm(https://en.wikipedia.org/wiki/K_shortest_path_routing) instead of using Yen's algorithm(https://en.wikipedia.org/wiki/Yen%27s_algorithm). We do not have code to simulate concurrent payments yet. 
 
 The experiment is run on a snapshot of the Lightning Network obtained from https://ln.bigsun.xyz. The set of adversaries is a mixture of nodes with high centrality, low centrality and random nodes. The snapshot as well as the centralities of all nodes are found in data/Snapshot and data/Centrality respectively.
 
