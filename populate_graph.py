@@ -1,7 +1,5 @@
 
 import json
-# df = pd.read_json(r'/Users/redhawk/PycharmProjects/NewModel/channels.json')
-# df.to_csv(r'/Users/redhawk/PycharmProjects/NewModel/channels.csv')
 import networkx as nx
 import random as rn
 import csv
