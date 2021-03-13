@@ -462,10 +462,7 @@ def deanonymize_ecl(G,target,pa,amt):
         if(curr == pre):
             if pa == p or visited[curr] == 3:
                 visited[curr] = 3
-                flag2 = 1
-            # print(paths[curr], paths1[curr], paths2[curr])
-        if flag1 == 1 and flag2 == 1:
-            # If pre is not an intermediary, then it must be the source
+                 # If pre is not an intermediary, then it must be the source
             if paths[pre] != pa and paths1[pre]!=pa and paths2[pre]!=pa:
                 if G.nodes[pre]["Tech"] != 2:
                     return []
@@ -474,15 +471,21 @@ def deanonymize_ecl(G,target,pa,amt):
                 # pre could still be a source
                 if G.nodes[pre]["Tech"] == 2:
                     sources.append(pre)
+                flag2 = 1
+            # print(paths[curr], paths1[curr], paths2[curr])
+        if flag1 == 1 and flag2 == 1:
                 # fill remaining possible sources
                 if pre in p:
-                    ind = p.index(pre)
-                    if p[ind:] == pa:
-                        visited[curr] = 3
-                        for [v, curr] in G.in_edges(curr):
-                            if v not in paths[curr] and G.nodes[v]["Tech"] == 2:
-                                sources.append(v)
-                    else:
-                        print("error")
+                    for [v, curr] in G.in_edges(curr):
+                        if v not in paths[curr] and G.nodes[v]["Tech"] == 2:
+                            sources.append(v)
+#                     ind = p.index(pre)
+#                     if p[ind:] == pa:
+#                         visited[curr] = 3
+#                         for [v, curr] in G.in_edges(curr):
+#                             if v not in paths[curr] and G.nodes[v]["Tech"] == 2:
+#                                 sources.append(v)
+#                     else:
+#                         print("error")
     sources = list(set(sources))
     return sources
