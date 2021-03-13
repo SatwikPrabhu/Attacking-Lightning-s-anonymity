@@ -66,12 +66,14 @@ def populate_channels(G, map, cbr):
                 G.edges[u, v]["id"] = id
                 G.edges[v, u]["Age"] = blk
                 G.edges[v, u]["id"] = id
+                # We randomly distribute the capacity in both directions initially.
                 x = rn.uniform(0,int(row[2]))
                 G.edges[u, v]["Balance"] = x
                 G.edges[v, u]["Balance"] = int(row[2]) - x
                 map1[id] = [u, v]
                 G.edges[u, v]["marked"] = 0
                 G.edges[v, u]["marked"] = 0
+                #Last failure is used in lnd for calculating edge probability. We ignore this aspect for now
                 # G.edges[u, v]["LastFailure"] = 25
                 # G.edges[v, u]["LastFailure"] = 25
 
