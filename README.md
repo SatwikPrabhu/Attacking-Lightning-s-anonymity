@@ -1,4 +1,4 @@
-# Evaluation of Lightning's Anonymity
+# Attacking Lightning's Anonymity
 
 An attack that enables an intermediary to break the anonymity of the source and destination of a trannsaction in the Lightning network. 
 
