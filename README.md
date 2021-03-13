@@ -8,10 +8,14 @@ We modify Eclair to use a generalized version of Dijkstra's algorithm instead of
 The experiment is run on a snapshot of the Lightning Network obtained from https://ln.bigsun.xyz. The set of adversaries is a mixture of nodes with high centrality, low centrality and random nodes. The snapshot as well as the centralities of all nodes are found in data/Snapshot and data/Centrality respectively.
 
 ## Code Structure
-populate_graph.py - Creates a payment graph from a snapshot of the Lightning Network.
-pathFind.py - Implements Dijkstra and generalized Dijkstra(for 3 best paths) taking the cost function of either LND, c-Lightning or Eclair as argument.
-attack_mixed.py - Implements an attack where an intermediary finds all potential sources and destinations of a transaction that it is a part of.
-execute.py - Runs an experiment with a set of adversaries on transactions between random pairs of sources and destinations.
-results.py - 
+*populate_graph.py* - Creates a payment graph from a snapshot of the Lightning Network.
+
+*pathFind.py* - Implements Dijkstra and generalized Dijkstra(for 3 best paths) taking the cost function of either LND, c-Lightning or Eclair as argument.
+
+*attack_mixed.py* - Implements an attack where an intermediary finds all potential sources and destinations of a transaction that it is a part of.
+
+*execute.py* - Runs an experiment with a set of adversaries on transactions between random pairs of sources and destinations.
+
+*results.py* - 
 
 
