@@ -262,6 +262,9 @@ def modifiedEclair(G, source, target, amt, path=None):
         for i in range(len(A)-1, 0,-1):
             edges_removed = []
             spurnode = A[i]
+            amt_spur = spur
+            for j in range(len(A)-2,i-1,-1):
+                amt_spur = amt_spur + G.edges[A[j],A[j+1]]["BaseFee"] + amt_spur*G.edges[A[j],A[j+1]]["FeeRate"] 
             rootpath = A[i:len(A)]
             # print(spurnode,rootpath,len(B))
             for j in range(0, len(B)):
@@ -282,7 +285,7 @@ def modifiedEclair(G, source, target, amt, path=None):
                             edges_removed.append((u, v))
                             edges_removed.append((v, u))
             # print(eclair_single(G1,spurnode,target,amt))
-            spurpath, delay, cost, dist = Dijkstra(G1, source,spurnode, amt,eclair_cost_fun)
+            spurpath, delay, cost, dist = Dijkstra(G1, source,spurnode, amt_spur,eclair_cost_fun)
             totalpath = spurpath[:-1]+rootpath
 
             flag = 0
