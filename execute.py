@@ -50,6 +50,7 @@ for [u,v] in G.edges():
 # Simulate the payment, try to de-anonymize if the adversary is encountered and fail if any of the balances are not sufficient        
 def route(G,path,delay,amt,ads,ind):
     print(path[0])
+    G1 = G.copy()
     G.edges[path[0],path[1]]["Balance"] -= amt
     G.edges[path[1],path[0]]["Locked"] = amt
     delay = delay - G.edges[path[0],path[1]]["Delay"]
@@ -60,7 +61,7 @@ def route(G,path,delay,amt,ads,ind):
         if path[i] in ads:
             delay1 = delay - G.edges[path[i],path[i+1]]["Delay"]
             print(delay1)
-            B,flag = at.dest_reveal_new(G,path[i],delay1,amt,path[i-1],path[i+1])
+            B,flag = at.dest_reveal_new(G1,path[i],delay1,amt,path[i-1],path[i+1])
             with open(file,'a') as csv_file:
                 csvwriter = csv.writer(csv_file)
                 for j in B:
