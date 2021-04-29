@@ -4,6 +4,7 @@ import attack_mixed as at
 import networkx as nx
 import csv
 import random as rn
+import json
 
 #Files that store details of all transactions and all attack results
 file = "results.json"
