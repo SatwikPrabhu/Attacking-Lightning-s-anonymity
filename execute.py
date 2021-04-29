@@ -6,15 +6,7 @@ import csv
 import random as rn
 
 #Files that store details of all transactions and all attack results
-file = "results_mixed.csv"
-file1 = "transactions_mixed.csv"
-
-with open(file, 'w') as csv_file:
-    csvwriter = csv.writer(csv_file)
-    csvwriter.writerow(["id,path,adversary,target,sources,tech"])
-with open(file1, 'w') as csv_file:
-    csvwriter = csv.writer(csv_file)
-    csvwriter.writerow(["id,source,destination,path,delay,amount"])
+file = "results.json"
 
 
 # populate the graph from the snapshot
