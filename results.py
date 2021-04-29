@@ -16,34 +16,6 @@ with open(file,'r') as json_file:
     results_json = json.load(json_file)
 results.append(results_json)
 
-# Load the snapshot to a networkx graph
-G = nx.DiGraph()
-G,m = pg.populate_nodes(G)
-G,m1=pg.populate_channels(G,m,645320)
-G = pg.populate_policies(G,m1)
-
-G1 = nx.DiGraph()
-
-for [u,v] in G.edges():
-    if(G.edges[u,v]["marked"]==1 and G.edges[v,u]["marked"]==1):
-        if (u not in G1.nodes()):
-            G1.add_node(u)
-            G1.nodes[u]["name"] = G.nodes[u]["name"]
-            G1.nodes[u]["pubadd"] = G.nodes[u]["pubadd"]
-            G1.nodes[u]["Tech"] = G.nodes[u]["Tech"]
-        if (v not in G1.nodes()):
-            G1.add_node(v)
-            G1.nodes[v]["name"] = G.nodes[v]["name"]
-            G1.nodes[v]["pubadd"] = G.nodes[v]["pubadd"]
-            G1.nodes[v]["Tech"] = G.nodes[v]["Tech"]
-        G1.add_edge(u,v)
-        G1.edges[u,v]["Balance"] = G.edges[u,v]["Balance"]
-        G1.edges[u, v]["Age"] = G.edges[u, v]["Age"]
-        G1.edges[u, v]["BaseFee"] = G.edges[u, v]["BaseFee"]
-        G1.edges[u, v]["FeeRate"] = G.edges[u, v]["FeeRate"]
-        G1.edges[u, v]["Delay"] = G.edges[u, v]["Delay"]
-        G1.edges[u, v]["id"] = G.edges[u, v]["id"]
-
 
 path = []
 
