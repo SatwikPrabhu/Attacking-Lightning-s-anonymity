@@ -122,8 +122,6 @@ for i in results:
                             for dest in ad[adv]:
                                 for rec in dest:
                                     for tech in dest[rec]:
-                                        if dest[rec][tech] == [] and k["tech"] == int(tech):
-                                            dest[rec][tech] = [k["sender"]]
                                         if int(rec) == k["recipient"] and k["sender"] in dest[rec][tech]:
                                             pair_found+=1
                                         for s in dest[rec][tech]:
