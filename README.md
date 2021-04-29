@@ -20,7 +20,7 @@ The experiment is run on a snapshot of the Lightning Network obtained from https
 
 *execute.py* - Runs a sample experiment with a set of adversaries on transactions between random pairs of sources and destinations.
 
-*stats.py* - Generates statistics and plots from the anonymity sets.
+*results.py* - Generates statistics and plots from the anonymity sets.
 
 ## Running an experiment
 
