@@ -27,13 +27,13 @@ The experiment is run on a snapshot of the Lightning Network obtained from https
 - Choose the set of adversaries using the centrality data from data/Centrality as your guide.
 - Specify the number of transactions you want to simulate in a run.
 - Specify the mechanism for choosing source destination pairs for each transaction.
-- The details of the transactions and the results of each attack instance is copied to *transactions.csv* and *results.csv* respectively.
+- The details of the transactions and the results of each attack instance is copied to *results.json*
 
 ## Results
 
 The following results can be obtained from *results.py*:
 - A figure plotting the sizes of each source and destination anonymity set.
-- Number of transactions for which either source or the destination anonymity set was a singular set.
-- The number of transactions attacked, the average size of source and destination anonymity sets returned by each adversary.
+- Number of transactions for which either source or the destination anonymity set was a singular set or both.
+- The number of transactions attacked by each adversary.
 - Correlation of the number of hops from the adversary to source/destination to the size of source/destination anonymity set.
 
