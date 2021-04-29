@@ -179,7 +179,11 @@ def Eclair(G, source, target, amt, path=None):
     else:
         B[0] = path
     paths = PriorityQueue()
-    # leng = 0
+    leng = 0
+    paths[leng]["Path"] = B[0]
+    paths[leng]["Dist"] = calc_params(G, B[0], amt)
+    paths[leng]["visited"] = 1
+    leng += 1
     for k in range(1, 3):
         A = B[k - 1]
         for i in range(0, len(A) - 2):
@@ -211,15 +215,16 @@ def Eclair(G, source, target, amt, path=None):
             flag = 0
             if totalpath == rootpath:
                 flag = 1
-            # for t in range(0, len(paths)):
-            #     if (totalpath == paths[t]["Path"]):
-            #         flag = 1
+            for t in range(0, leng):
+                if (totalpath == paths[t]["Path"]):
+                    flag = 1
             if flag == 0:
-                # paths[leng]["Path"] = totalpath
+                paths[leng]["Path"] = totalpath
                 di = calc_params(G, totalpath, amt)
-                # paths[leng]["visited"] = 0
-                # leng += 1
-                paths.put((di, totalpath))
+                paths[leng]["visited"] = 0
+                paths[leng]["Dist"] = di
+                #print(totalpath)
+                leng += 1
             for e in edges_removed:
                 u, v = e
                 G1.add_edge(u, v)
@@ -228,20 +233,16 @@ def Eclair(G, source, target, amt, path=None):
                 G1.edges[u, v]["BaseFee"] = G.edges[u, v]["BaseFee"]
                 G1.edges[u, v]["FeeRate"] = G.edges[u, v]["FeeRate"]
                 G1.edges[u, v]["Age"] = G.edges[u, v]["Age"]
-        flag1 = 0
-        while flag1 == 0:
-            d, p = paths.get()
-            flag2 = 0
-            for i in range(0, len(B)):
-                if p == B[i]:
-                    flag2 = 1
-                    break
-            if flag2 == 0:
-                flag1 = 1
-        if p == None:
-            break
-        else:
-            B[k] = p
+        minpath = paths[1]["Path"]
+        mincost = paths[1]["Dist"]
+        index = -1
+        for i in range(2, leng):
+            if mincost > paths[i]["Dist"] and paths[i]["visited"] == 0:
+                mincost = paths[i]["Dist"]
+                minpath = paths[i]["Path"]
+                index = i
+        paths[index]["visited"] = 1
+        B[k] = minpath
     return B
 
 
@@ -257,12 +258,16 @@ def modifiedEclair(G, source, target, amt, path=None):
         B[0] = path
     paths = PriorityQueue()
     leng = 0
+    paths[leng]["Path"] = B[0]
+    paths[leng]["Dist"] = calc_params(G, B[0], amt)
+    paths[leng]["visited"] = 1
+    leng += 1
     for k in range(1, 3):
         A = B[k - 1]
         for i in range(len(A)-1, 0,-1):
             edges_removed = []
             spurnode = A[i]
-            amt_spur = spur
+            amt_spur = amt
             for j in range(len(A)-2,i-1,-1):
                 amt_spur = amt_spur + G.edges[A[j],A[j+1]]["BaseFee"] + amt_spur*G.edges[A[j],A[j+1]]["FeeRate"] 
             rootpath = A[i:len(A)]
@@ -291,9 +296,16 @@ def modifiedEclair(G, source, target, amt, path=None):
             flag = 0
             if totalpath == rootpath:
                 flag = 1
-            # for t in range(0, len(paths)):
-            #     if (totalpath == paths[t]["Path"]):
-            #         flag = 1
+            for t in range(0, leng):
+                if (totalpath == paths[t]["Path"]):
+                    flag = 1
+            if flag == 0:
+                paths[leng]["Path"] = totalpath
+                di = calc_params(G, totalpath, amt)
+                paths[leng]["visited"] = 0
+                paths[leng]["Dist"] = di
+                #print(totalpath)
+                leng += 1
             if flag == 0:
                 # paths[leng]["Path"] = totalpath
                 di = calc_params(G, totalpath, amt)
@@ -308,20 +320,16 @@ def modifiedEclair(G, source, target, amt, path=None):
                 G1.edges[u, v]["BaseFee"] = G.edges[u, v]["BaseFee"]
                 G1.edges[u, v]["FeeRate"] = G.edges[u, v]["FeeRate"]
                 G1.edges[u, v]["Age"] = G.edges[u, v]["Age"]
-        flag1 = 0
-        while flag1 == 0:
-            d, p = paths.get()
-            flag2 = 0
-            for i in range(0, len(B)):
-                if p == B[i]:
-                    flag2 = 1
-                    break
-            if flag2 == 0:
-                flag1 = 1
-        if p == None:
-            break
-        else:
-            B[k] = p
+        minpath = paths[1]["Path"]
+        mincost = paths[1]["Dist"]
+        index = -1
+        for i in range(2, leng):
+            if mincost > paths[i]["Dist"] and paths[i]["visited"] == 0:
+                mincost = paths[i]["Dist"]
+                minpath = paths[i]["Path"]
+                index = i
+        paths[index]["visited"] = 1
+        B[k] = minpath
     return B
 
 # Generalized Dijkstra for 3 best paths - alternative to yen's algo
