@@ -105,20 +105,11 @@ for i in results:
                     anon_sets = k["anon_sets"]
                     for ad in anon_sets:
                         num_attacks+=1
+                        num = -1
                         for adv in ad:
                             sources = []
                             ad_attacks[int(adv)]+=1
-                            ind = k["path"].index(int(adv))
-                            dist_dest.append(len(k["path"])-1-ind)
-                            dist_source.append(ind)
-                            if(k["comp_attack"] == 1):
-                                dest_count_comp.append(len(ad[adv]))
-                                num_comp+=1
-                            else:
-                                dest_count_incomp.append(len(ad[adv]))
-                            dest_count.append(len(ad[adv]))
-                            if(len(ad[adv]) == 1):
-                                sing_dest+=1
+                            num+=1
                             for dest in ad[adv]:
                                 for rec in dest:
                                     for tech in dest[rec]:
@@ -126,17 +117,29 @@ for i in results:
                                             pair_found+=1
                                         for s in dest[rec][tech]:
                                             sources.append(s)
-                            if (k["comp_attack"] == 1):
-                                source_count_comp.append(len(set(sources)))
-                            else:
-                                source_count_incomp.append(len(set(sources)))
-                            source_count.append(len(set(sources)))
-                            if(len(set(sources))==1):
-                                sing_source+=1
-                            if(len(ad[adv]) ==1) or(len(set(sources))==1):
-                                sing_any+=1
-                            if (len(ad[adv]) == 1) and (len(set(sources)) == 1):
-                                sing_all += 1
+                            if len(set(sources))>0:
+                                ind = k["path"].index(int(adv))
+                                dist_dest.append(len(k["path"])-1-ind)
+                                dist_source.append(ind)
+                                if(k["comp_attack"][num] == 1):
+                                    dest_count_comp.append(len(ad[adv]))
+                                    num_comp+=1
+                                else:
+                                    dest_count_incomp.append(len(ad[adv]))
+                                dest_count.append(len(ad[adv]))
+                                if(len(ad[adv]) == 1):
+                                    sing_dest+=1
+                                if (k["comp_attack"][num] == 1):
+                                    source_count_comp.append(len(set(sources)))
+                                else:
+                                    source_count_incomp.append(len(set(sources)))
+                                source_count.append(len(set(sources)))
+                                if(len(set(sources))==1):
+                                    sing_source+=1
+                                if(len(ad[adv]) ==1) or(len(set(sources))==1):
+                                    sing_any+=1
+                                if (len(ad[adv]) == 1) and (len(set(sources)) == 1):
+                                    sing_all += 1
 # print(num_transactions,num_attacked,num_attacks,pair_found)
 # print(source_count)
 # print(dest_count)
