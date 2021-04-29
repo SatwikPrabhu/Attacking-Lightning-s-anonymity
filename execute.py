@@ -45,7 +45,7 @@ for [u,v] in G.edges():
 # Simulate the payment, try to de-anonymize if the adversary is encountered and fail if any of the balances are not sufficient        
 def route(G,path,delay,amt,ads,amt1,file,tech):
     cost = amt
-    comp_attack = -1
+    comp_attack = []
     anon_sets =[]
     attacked = 0
     #print(path[0])
@@ -75,9 +75,9 @@ def route(G,path,delay,amt,ads,amt1,file,tech):
                 dest = {j:B[j]}
                 dests.append(dest)
             if flag == True:
-                comp_attack = 1
+                comp_attack.append(1)
             else:
-                comp_attack = 0
+                comp_attack.append(0)
             anon_set = {path[i]:dests}
             anon_sets.append(anon_set)
         if(G.edges[path[i],path[i+1]]["Balance"] >= amt):
@@ -158,12 +158,12 @@ while(i<=10000):
                 amount += G1.edges[path[m], path[m + 1]]["BaseFee"] + amount * G1.edges[path[m], path[m + 1]]["FeeRate"]
             delay += G1.edges[path[0], path[1]]["Delay"]
     if (len(path) > 0):
-    T = route(G, path, delay, amount, ads, amt, file)
+        T = route(G, path, delay, amount, ads, amt, file)
     if len(path) > 2:
         print(i,path, "done")
         i += 1
 with open(file,'r') as json_file:
-data = json.load(json_file)
+    data = json.load(json_file)
 data.append(transactions)
 with open(file,'w') as json_file:
     json.dump(data,json_file,indent=1)
