@@ -237,11 +237,12 @@ def route(G,path,delay,amt,ads,amt1,file):
                 while j >= 0:
                     G.edges[path[j + 1], path[j]]["Balance"] += G.edges[path[j + 1], path[j]]["Locked"]
                     G.edges[path[j + 1], path[j]]["Locked"] = 0
+                    if j==0:
+                        transaction = {"sender": path[0], "recipient": path[len(path)-1], "path": path, "delay": delay,
+                                       "amount": amt1, "Cost": cost, "attacked": attacked,
+                                       "success": True, "anon_sets": anon_sets, "comp_attack": comp_attack}
+                        transactions.append(transaction)
                     j = j-1
-                    transaction = {"sender": path[0], "recipient": path[len(path)-1], "path": path, "delay": delay,
-                                   "amount": amt1, "Cost": cost, "attacked": attacked,
-                                   "success": True, "anon_sets": anon_sets, "comp_attack": comp_attack}
-                    transactions.append(transaction)
                 return True
             delay = delay - G.edges[path[i],path[i+1]]["Delay"]
             i += 1
@@ -250,11 +251,12 @@ def route(G,path,delay,amt,ads,amt1,file):
             while j >= 0:
                 G.edges[path[j],path[j+1]]["Balance"] += G.edges[path[j+1],path[j]]["Locked"]
                 G.edges[path[j + 1], path[j]]["Locked"] = 0
+                if j==0:
+                    transaction = {"sender": path[0], "recipient": path[len(path)-1], "path": path, "delay": delay,
+                                   "amount": amt1, "Cost": cost, "attacked": attacked,
+                                   "success": False, "anon_sets": anon_sets, "comp_attack": comp_attack}
+                    transactions.append(transaction)
                 j = j-1
-                transaction = {"sender": path[0], "recipient": path[len(path)-1], "path": path, "delay": delay,
-                               "amount": amt1, "Cost": cost, "attacked": attacked,
-                               "success": False, "anon_sets": anon_sets, "comp_attack": comp_attack}
-                transactions.append(transaction)
             return False
 
 G = nx.barabasi_albert_graph(100,2,65)
