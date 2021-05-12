@@ -103,6 +103,22 @@ def build_path(u, previous):
     path.append(u)
     return path
 
+def calc_params(G, path, amt):
+    cost = amt
+    delay = 0
+    dist = 0
+    for i in range(len(path)-2,0,-1):
+        fee = cost * G.edges[path[i], path[i+1]]["FeeRate"] + G.edges[path[i], path[i+1]]["BaseFee"]
+
+        ndelay = normalize(G.edges[path[i], path[i+1]]["Delay"], MIN_DELAY, MAX_DELAY)
+        ncapacity = 1 - normalize((G.edges[path[i], path[i+1]]["Balance"] + G.edges[path[i], path[i+1]]["Balance"]), MIN_CAP, MAX_CAP)
+        nage = normalize(CBR - G.edges[path[i], path[i+1]]["Age"], MIN_AGE, MAX_AGE)
+
+        dist += fee * (ndelay * DELAY_RATIO + ncapacity * CAPACITY_RATIO + nage * AGE_RATIO)
+        delay += G.edges[path[i],path[i+1]]["Delay"]
+        cost += fee
+    return dist
+
 # Find the best path based on the cost function using Dijkstra algo using priority queues
 def Dijkstra(G,source,target,amt,cost_function):
     paths = {}
