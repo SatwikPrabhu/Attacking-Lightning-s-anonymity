@@ -194,7 +194,7 @@ def Eclair(G, source, target, amt, path=None):
     # print(B[0]["Path"])
     else:
         B[0] = path
-    paths = PriorityQueue()
+    paths = nd.nested_dict()
     leng = 0
     paths[leng]["Path"] = B[0]
     paths[leng]["Dist"] = calc_params(G, B[0], amt)
@@ -272,7 +272,7 @@ def modifiedEclair(G, source, target, amt, path=None):
     # print(B[0]["Path"])
     else:
         B[0] = path
-    paths = PriorityQueue()
+    paths = nd.nested_dict()
     leng = 0
     paths[leng]["Path"] = B[0]
     paths[leng]["Dist"] = calc_params(G, B[0], amt)
