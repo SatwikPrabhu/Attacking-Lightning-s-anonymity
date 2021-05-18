@@ -160,7 +160,7 @@ while(i<=10000):
                 amount += G1.edges[path[m], path[m + 1]]["BaseFee"] + amount * G1.edges[path[m], path[m + 1]]["FeeRate"]
             delay += G1.edges[path[0], path[1]]["Delay"]
     if (len(path) > 0):
-        T = route(G, path, delay, amount, ads, amt, file)
+        T = route(G1, path, delay, amount, ads, amt, file)
     if len(path) > 2:
         print(i,path, "done")
         i += 1
