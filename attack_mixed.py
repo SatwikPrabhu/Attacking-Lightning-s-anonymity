@@ -477,7 +477,7 @@ def deanonymize_ecl(G,target,pa,amt):
                 # fill remaining possible sources
                 if pre in p:
                     for [v, curr] in G.in_edges(curr):
-                        if v not in paths[curr] and G.nodes[v]["Tech"] == 2:
+                        if v not in p and G.nodes[v]["Tech"] == 2:
                             sources.append(v)
 #                     ind = p.index(pre)
 #                     if p[ind:] == pa:
