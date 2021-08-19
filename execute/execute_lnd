@@ -9,7 +9,7 @@ import json
 import attack_lnd as at
 from networkx.readwrite import json_graph
 
-file = ["results_lnd1.json","results_lnd2.json","results_lnd3.json","results_lnd4.json","results_lnd5.json"]
+file = []
 
 transactions = []
 
