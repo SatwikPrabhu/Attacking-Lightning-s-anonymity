@@ -8,9 +8,7 @@ import seaborn as sns
 import networkx as nx
 import populate_graph as pg
 
-file = ["results2/results_blind1.json","results2/results_blind2.json","results2/results_blind3.json",
-        "results2/results_blind4.json","results2/results_blind5.json","results3/results_blind1.json","results3/results_blind2.json","results3/results_blind3.json",
-        "results3/results_blind4.json","results3/results_blind5.json"]
+file = []
 
 all_results = []
 for i in range(0,10):
