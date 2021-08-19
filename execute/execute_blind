@@ -1,22 +1,17 @@
-import csv
-import ast
-import nested_dict as nd
-import matplotlib.pyplot as plt
-import numpy as np
-import json
-import seaborn as sns
-import networkx as nx
+import pathFind as pf
 import populate_graph as pg
+import attack_blind as at
+import networkx as nx
+import sys
+import random as rn
+import nested_dict as nd
+import json
+from networkx.readwrite import json_graph
 
-file = ["results2/results_blind1.json","results2/results_blind2.json","results2/results_blind3.json",
-        "results2/results_blind4.json","results2/results_blind5.json","results3/results_blind1.json","results3/results_blind2.json","results3/results_blind3.json",
-        "results3/results_blind4.json","results3/results_blind5.json"]
+file = ["results_blind1.json","results_blind2.json","results_blind3.json","results_blind4.json","results_blind5.json"]
 
-all_results = []
-for i in range(0,10):
-    with open(file[i],'r') as json_file:
-        results_json = json.load(json_file)
-    all_results.append(results_json)
+transactions = []
+
 G = nx.DiGraph()
 G,m = pg.populate_nodes(G)
 G,m1=pg.populate_channels(G,m,645320)
@@ -49,130 +44,157 @@ for [u,v] in G.edges():
         G1.edges[u, v]["id"] = G.edges[u, v]["id"]
 
 
-path = []
-num_transactions = 0
-num_attacked = 0
-num_attacks = 0
-dest_count = []
-dest_count_comp = []
-dest_count_incomp = []
-source_count = []
-source_count_comp = []
-source_count_incomp = []
-dist_dest = []
-pair_found = 0
-dist_source = []
-num_comp = 0
-sing_dest = 0
-sing_source = 0
-sing_all = 0
-sing_any = 0
-ads = [2634, 5422, 8075, 5347, 1083, 5093, 4326, 4126, 2836, 5361, 10572, 5389, 3599, 9819, 4828, 3474, 8808, 93, 9530,
-       9515, 2163]
-ad_attacks = {}
-for ad in ads:
-    ad_attacks[ad] = 0
-for i in all_results:
-    for j in i:
-        for k in j:
-            if k["path"]!=path:
-                path = k["path"]
-                num_transactions+=1
-                if k["attacked"]>0:
-                    num_attacked+=1
-                    anon_sets = k["anon_sets"]
-                    for ad in anon_sets:
-                        num_attacks+=1
-                        for adv in ad:
-                            sources = []
-                            ad_attacks[int(adv)]+=1
-                            ind = k["path"].index(int(adv))
-                            dist_dest.append(len(k["path"])-1-ind)
-                            dist_source.append(ind)
-                            if(k["comp_attack"] == 1):
-                                dest_count_comp.append(len(ad[adv]))
-                                num_comp+=1
-                            else:
-                                dest_count_incomp.append(len(ad[adv]))
-                            dest_count.append(len(ad[adv]))
-                            if(len(ad[adv]) == 1):
-                                sing_dest+=1
-                            for dest in ad[adv]:
-                                for rec in dest:
-                                    for tech in dest[rec]:
-                                        if dest[rec][tech] == [] and k["tech"] == int(tech):
-                                            dest[rec][tech] = [k["sender"]]
-                                        if int(rec) == k["recipient"] and k["sender"] in dest[rec][tech]:
-                                            pair_found+=1
-                                        for s in dest[rec][tech]:
-                                            sources.append(s)
-                            if (k["comp_attack"] == 1):
-                                source_count_comp.append(len(set(sources)))
-                            else:
-                                source_count_incomp.append(len(set(sources)))
-                            source_count.append(len(set(sources)))
-                            if(len(set(sources))==1):
-                                sing_source+=1
-                            if(len(ad[adv]) ==1) or(len(set(sources))==1):
-                                sing_any+=1
-                            if (len(ad[adv]) == 1) and (len(set(sources)) == 1):
-                                sing_all += 1
-# print(num_transactions,num_attacked,num_attacks,pair_found)
-# print(source_count)
-# print(dest_count)
-new_dest_count = []
-new_source_count = []
-new_dist_dest = []
-new_dist_source = []
-new_dest_count_comp = []
-new_source_count_comp = []
-new_dest_count_incomp = []
-new_source_count_incomp = []
-for i in range(0,len(dest_count)):
-    if source_count[i]!=0:
-        new_dest_count.append(dest_count[i])
-        new_source_count.append(source_count[i])
-        new_dist_dest.append(dist_dest[i])
-        new_dist_source.append(dist_source[i])
+def route(G,path,delay,amt,ads,amt1,file,tech):
+    cost = amt
+    comp_attack = []
+    anon_sets =[]
+    attacked = 0
+    G1 = G.copy()
+    #print(path[0])
+    G.edges[path[0],path[1]]["Balance"] -= amt
+    G.edges[path[1],path[0]]["Locked"] = amt
+    delay = delay - G.edges[path[0],path[1]]["Delay"]
+    i = 1
+    if len(path) == 2:
+        G.edges[path[1],path[0]]["Balance"] += G.edges[path[1],path[0]]["Locked"]
+        G.edges[path[1], path[0]]["Locked"] = 0
+        # with open(file) as json_file:
+        #     data = json.load(json_file)
+        #     temp = data
+        transaction = {"sender": path[0], "recipient": path[1], "path" : path, "delay": delay, "amount":amt1, "Cost": cost, "tech":tech,
+                       "attacked":0,
+                    "success":True,"anon_sets":anon_sets,"comp_attack":comp_attack}
+        transactions.append(transaction)
+        # with open(file,'w') as json_file:
+        #     json.dump(temp,json_file,indent=4)
+        return True
+    while(i < len(path)-1):
+        #print(path[i])
+        amt = (amt - G.edges[path[i], path[i+1]]["BaseFee"]) / (1 + G.edges[path[i], path[i+1]]["FeeRate"])
+        if path[i] in ads:
+            attacked+=1
+            dests = []
+            delay1 = delay - G.edges[path[i],path[i+1]]["Delay"]
+            #print(delay1)
+            B,flag = at.dest_reveal_new(G1,path[i],delay1,amt,path[i-1],path[i+1])
+            for j in B:
+                dest = {j:B[j]}
+                dests.append(dest)
+            if flag == True:
+                comp_attack.append(1)
+            else:
+                comp_attack.append(0)
+            anon_set = {path[i]:dests}
+            anon_sets.append(anon_set)
+            # with open(file,'a') as csv_file:
+            #     csvwriter = csv.writer(csv_file)
+            #     for j in B:
+            #         csvwriter.writerow([ind,path[i],j,B[j],flag])
+        if(G.edges[path[i],path[i+1]]["Balance"] >= amt):
+            G.edges[path[i], path[i+1]]["Balance"] -= amt
+            G.edges[path[i+1], path[i]]["Locked"] = amt
+            if i == len(path) - 2:
+                G.edges[path[i+1],path[i]]["Balance"] += G.edges[path[i+1], path[i]]["Locked"]
+                G.edges[path[i+1], path[i]]["Locked"] = 0
+                j = i - 1
+                while j >= 0:
+                    G.edges[path[j + 1], path[j]]["Balance"] += G.edges[path[j + 1], path[j]]["Locked"]
+                    G.edges[path[j + 1], path[j]]["Locked"] = 0
 
-for i in range(0,len(dest_count_comp)):
-    if dest_count_comp[i] != 0:
-        new_dest_count_comp.append(dest_count_comp[i])
-
-for i in range(0,len(source_count_comp)):
-    if source_count_comp[i] != 0:
-        new_source_count_comp.append(source_count_comp[i])
-
-for i in range(0,len(dest_count_incomp)):
-    if dest_count_incomp[i] != 0:
-        new_dest_count_incomp.append(dest_count_incomp[i])
-
-for i in range(0,len(source_count_incomp)):
-    if source_count_incomp[i] != 0:
-        new_source_count_incomp.append(source_count_incomp[i])
-print(num_attacked/num_transactions,num_attacks/num_attacked)
-print(np.corrcoef(new_dest_count,new_dist_dest),np.corrcoef(new_source_count,new_dist_source))
-print(sing_source/num_attacks,sing_dest/num_attacks,sing_any/num_attacks,sing_all/num_attacks)
-print(num_comp/num_attacks)
-print(len(new_dist_source)/len(dist_source))
-print(num_transactions)
-
-plot1 = sns.ecdfplot(data = new_dest_count_comp,legend='Phase I complete',marker = '|',linewidth = 1.5, linestyle = ':')
-plot2 = sns.ecdfplot(data = new_dest_count_incomp,legend='Phase I incomplete',marker = '|',linewidth = 1.5, linestyle = ':')
-plot1.set(xscale='log')
-plot2.set(xscale='log')
-plt.legend(('Phase I complete','Phase I incomplete'),scatterpoints=1,loc='lower right',ncol=1,fontsize=16)
-plt.xlabel("Size of anonymity set")
-plt.ylabel("CDF")
-plt.show()
-
-plot1 = sns.ecdfplot(data = new_source_count_comp,legend='Phase I complete',marker = '|',linewidth = 1.5, linestyle = ':')
-plot2 = sns.ecdfplot(data = new_source_count_incomp,legend='Phase I incomplete',marker = '|',linewidth = 1.5, linestyle = ':')
-plot1.set(xscale='log')
-plot2.set(xscale='log')
-plt.legend(('Phase I complete','Phase I incomplete'),scatterpoints=1,loc='lower right',ncol=1,fontsize=16)
-plt.xlabel("Size of anonymity set")
-plt.ylabel("CDF")
-plt.show()
+                # with open(file) as json_file:
+                #     data = json.load(json_file)
+                #     temp = data
+                    if j == 0:
+                        transaction = {"sender": path[0], "recipient": path[len(path)-1], "path": path, "delay": delay,
+                                       "amount": amt1, "Cost": cost,"tech":tech, "attacked": attacked,
+                                       "success": True, "anon_sets": anon_sets, "comp_attack": comp_attack}
+                        transactions.append(transaction)
+                    j=j-1
+                # with open(file, 'w') as json_file:
+                #     json.dump(temp, json_file,indent=4)
+                return True
+            delay = delay - G.edges[path[i],path[i+1]]["Delay"]
+            i += 1
+        else:
+            # G.edges[path[i],path[i+1]]["LastFailure"] = 0
+            j = i - 1
+            while j >= 0:
+                G.edges[path[j],path[j+1]]["Balance"] += G.edges[path[j+1],path[j]]["Locked"]
+                G.edges[path[j + 1], path[j]]["Locked"] = 0
+            # with open(file) as json_file:
+            #     data = json.load(json_file)
+            #     temp = data
+                if j == 0:
+                    transaction = {"sender": path[0], "recipient": path[len(path)-1], "path": path, "delay": delay,
+                                   "amount": amt1, "Cost": cost,"tech":tech, "attacked": attacked,
+                                   "success": False, "anon_sets": anon_sets, "comp_attack": comp_attack}
+                    transactions.append(transaction)
+                j = j-1
+            # with open(file, 'w') as json_file:
+            #     json.dump(temp, json_file,indent = 4)
+            return False
 
 
+if __name__ == "__main__":
+    a = int(sys.argv[1])
+    ads = [2634,5422, 8075, 5347, 1083, 5093,4326, 4126, 2836, 5361, 10572,5389, 3599, 9819, 4828, 3474, 8808, 93, 9530, 9515, 2163]
+    i = 0
+    while (i <= 10):
+        # with open("graph.json",'r') as json_file:
+        #     graph_json = json.load(json_file)
+        # G = json_graph.node_link_graph(graph_json)
+        u = -1
+        v = -1
+        while (u == v or (u not in G1.nodes()) or (v not in G1.nodes())):
+            u = rn.randint(0, 11197)
+            v = rn.randint(0, 11197)
+            # if(u!=v):
+            # i+=1
+        if (i % 5 == 1):
+            amt = rn.randint(1, 10)
+        elif (i % 5 == 2):
+            amt = rn.randint(10, 100)
+        elif (i % 5 == 3):
+            amt = rn.randint(100, 1000)
+        elif (i % 5 == 4):
+            amt = rn.randint(1000, 10000)
+        else:
+            amt = rn.randint(10000, 100000)
+        #print(u, v, amt,G1.nodes[u]["Tech"])
+        if (G1.nodes[u]["Tech"] == 0):
+            path, delay, amount, dist = pf.Dijkstra(G1, u, v, amt, pf.lnd_cost_fun)
+        elif (G1.nodes[u]["Tech"] == 1):
+            fuzz = rn.uniform(-1, 1)
+            path, delay, amount, dist = pf.Dijkstra(G1, u, v, amt, pf.c_cost_fun(fuzz))
+        else:
+            paths = pf.Dijkstra_general(G1, u, v, amt, pf.eclair_cost_fun)
+            if (paths[0] == []):
+                continue
+            if len(paths[0]) == 2:
+                path = paths[0]
+                r = 0
+            else:
+                r = rn.randint(0, 2)
+                path = paths[r]
+            delay = 0
+            amount = amt
+            #print(path, r)
+            if (len(path) > 2):
+                for m in range(len(path) - 2, 0, -1):
+                    delay += G1.edges[path[m], path[m + 1]]["Delay"]
+                    amount += G1.edges[path[m], path[m + 1]]["BaseFee"] + amount * G1.edges[path[m], path[m + 1]][
+                        "FeeRate"]
+                delay += G1.edges[path[0], path[1]]["Delay"]
+        if(len(path)>0):
+            T = route(G1,path,delay,amount,ads,amt,file[a],G1.nodes[u]["Tech"])
+        # graph_json = json_graph.node_link_data(G)
+        # with open("graph.json", 'w') as json_file:
+        #     json.dump(graph_json,json_file)
+        if len(path)>2:
+            #print(i,"done")
+            i+=1
+    with open(file[a],'r') as json_file:
+        data = json.load(json_file)
+    data.append(transactions)
+    with open(file[a],'w') as json_file:
+        json.dump(data,json_file,indent=1)
