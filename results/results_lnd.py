@@ -9,11 +9,7 @@ import seaborn as sns
 # file = ["results1/results_lnd1.json","results1/results_lnd2.json","results1/results_lnd3.json",
 #         "results1/results_lnd4.json","results1/results_lnd5.json"]
 
-file = ["results4/newresults/results_lnd1.json","results4/newresults/results_lnd2.json",
-        "results4/newresults/results_lnd3.json",
-        "results4/newresults/results_lnd4.json","results4/newresults/results_lnd5.json",
-        "results9/results_lnd1.json","results9/results_lnd2.json","results9/results_lnd3.json",
-        "results9/results_lnd4.json","results9/results_lnd5.json"]
+file = []
 
 all_results = []
 for i in range(0,10):
@@ -99,7 +95,6 @@ print(num_attacked/num_transactions,num_attacks/num_attacked)
 print(np.corrcoef(dest_count,dist_dest),np.corrcoef(source_count,dist_source))
 print(sing_source/num_attacks,sing_dest/num_attacks,sing_any/num_attacks,sing_all/num_attacks)
 print(num_comp/num_attacks)
-print(len(dist_source)/len(dist_source))
 print(num_transactions)
 
 plot1 = sns.ecdfplot(data = dest_count_comp,legend='Phase I complete',marker = '|',linewidth = 1.5, linestyle = ':')
