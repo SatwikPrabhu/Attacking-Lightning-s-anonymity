@@ -7,9 +7,10 @@ import random as rn
 class PathSegmentRouting(Routing):
 
     # Initialize routing algorithm
-    def __init__(self, baseRouting) -> None:
+    def __init__(self, baseRouting, position_known) -> None:
         super().__init__()
         self.__baseRouting = baseRouting
+        self.__position_known = position_known
 
     # human readable name for this routing algorithm
     def name(self):
@@ -98,7 +99,6 @@ class PathSegmentRouting(Routing):
 
     def adversarial_attack(self, G,adversary,delay,amount,pre,next, attack_position):
         T = nd.nested_dict()
-
         flag1 = True
         level = 0
         T[0]["nodes"] = [next]
@@ -140,14 +140,14 @@ class PathSegmentRouting(Routing):
                 flag = False
         level = level - 1
         
-        if (True):
-            # attack_position = 1
+        if (self.__position_known):
             return self.phase2_attack_position_known(level, T, G, amount, delay, pre, adversary, attack_position), flag1
         else:
-            pass 
+            return self.phase2_attack_position_unknown(level, T, G, amount, delay, pre, adversary), flag1
 
+    # looks for all possible sources when assuming a certain attack position
     def phase2_attack_position_known(self, level, T, G, amount, delay, pre, adversary, attack_position):
-        anon_sets = nd.nested_dict()
+        anon_sets = {}
         while(level>=0):
             t = T[level]["nodes"]
             d = T[level]["delays"]
@@ -185,6 +185,21 @@ class PathSegmentRouting(Routing):
                                 anon_sets[pot] = list(sources)
             level = level - 1
         return anon_sets
+
+    # looks for all possible source/dest pairs for every possible attack position, and combines results
+    def phase2_attack_position_unknown(self, level, T, G, amount, delay, pre, adversary):
+        first_sources = self.phase2_attack_position_known(level, T, G, amount, delay, pre, adversary, 0)
+        center_sources = self.phase2_attack_position_known(level, T, G, amount, delay, pre, adversary, 1)
+        second_sources = self.phase2_attack_position_known(level, T, G, amount, delay, pre, adversary, 2)
+
+        for dst in center_sources:
+            if dst in first_sources:
+                first_sources[dst] = list(set(first_sources[dst] + center_sources[dst]))
+        for dst in second_sources:
+            if dst in first_sources:
+                first_sources[dst] = list(set(first_sources[dst] + second_sources[dst]))
+
+        return first_sources
 
     def deanonymize(self, G,target,path,amt,dl):
         pq = PriorityQueue()
