@@ -8,21 +8,6 @@ class Routing:
         self.ignore_tech = ignore_tech
         self.collab = False
 
-    # # cost function, should be overwritten by child
-    # def cost_function(self, G, amount, u, v):
-    #     print("error")
-    #     pass
-
-    # # cost function for first hop: sender does not take a fee
-    # # should be overwritten by child
-    # def cost_function_no_fees(self, G, amount, dist, u, v):
-    #     print("error")
-    #     pass
-
-    # def route(self, G):
-    #     print("error")
-    #     pass
-
     # Dijkstra's routing algorithm for finding the shortest path
     def Dijkstra(self, G, source, target, amt, payment_source=True, target_delay=0):
         paths = {}
@@ -194,7 +179,7 @@ class Routing:
             if(curr in path[1:]):
                 ind = path.index(curr)
                 if(paths[curr]!=path[ind:]):
-                    return None # TODO double check vs return []
+                    return None
                 if curr == adv:
                     flag1 = 1
             if(curr == pre):

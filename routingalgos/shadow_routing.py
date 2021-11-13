@@ -7,9 +7,9 @@ import random as rn
 class ShadowRouting(Routing):
 
     # Initialize routing algorithm
-    def __init__(self, baseRouting) -> None:
+    def __init__(self, base_routing) -> None:
         super().__init__()
-        self.__baseRouting = baseRouting
+        self.__baseRouting = base_routing
 
     # human readable name for this routing algorithm
     def name(self):

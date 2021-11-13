@@ -34,8 +34,8 @@ class EclairRouting(Routing):
     AGE_RATIO = 0.35
 
     # Initialize routing algorithm
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, ignore_tech = True) -> None:
+        super().__init__(ignore_tech)
 
     # human-readable name for routing algorithm
     def name(self):

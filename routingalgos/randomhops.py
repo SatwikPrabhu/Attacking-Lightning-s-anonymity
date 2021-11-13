@@ -9,10 +9,10 @@ from math import inf
 class RandomHopsRouting(Routing):
 
     # Initialize routing algorithm
-    def __init__(self, baseRouting, filterSources) -> None:
+    def __init__(self, base_routing, filter_sources) -> None:
         super().__init__()
-        self.__baseRouting = baseRouting
-        self.__filterSources = filterSources
+        self.__baseRouting = base_routing
+        self.__filterSources = filter_sources
 
     # human readable name for this routing algorithm
     def name(self):

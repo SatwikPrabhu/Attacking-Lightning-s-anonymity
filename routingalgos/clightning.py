@@ -9,8 +9,8 @@ class CLightningRouting(Routing):
     DEFAULT_FUZZ = 0.05
 
     # Initialize routing algorithm
-    def __init__(self, fuzz) -> None:
-        super().__init__()
+    def __init__(self, fuzz, ignore_tech = True) -> None:
+        super().__init__(ignore_tech)
         self.__fuzz = fuzz
 
     # human-readable name for routing algorithm
