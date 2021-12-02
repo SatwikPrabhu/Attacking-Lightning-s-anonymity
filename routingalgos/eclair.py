@@ -34,8 +34,8 @@ class EclairRouting(Routing):
     AGE_RATIO = 0.35
 
     # Initialize routing algorithm
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, ignore_tech = True) -> None:
+        super().__init__(ignore_tech)
 
     # human-readable name for routing algorithm
     def name(self):
@@ -61,7 +61,7 @@ class EclairRouting(Routing):
 
     # construct route using Eclair algorithm, uses a modified general Dijkstra's algorithm
     def routePath(self, G, u, v, amt, payment_source=True, target_delay = 0 ):
-        paths =  self.Dijkstra_general(G, u, v, amt)
+        paths =  self.Dijkstra_general(G, u, v, amt, payment_source, target_delay)
 
         # fail when no paths found
         if(paths[0]==[]):
@@ -74,7 +74,7 @@ class EclairRouting(Routing):
         # else, pick best of 3
         r = rn.randint(0, 2)
         path = paths[r]
-        delay = 0
+        delay = target_delay
         amount = amt
         dist = 0
         # recalculate based on chosen path
@@ -85,7 +85,7 @@ class EclairRouting(Routing):
         return {"path": path, "delay": delay, "amount": amount, "dist": dist}
 
     # Generalized Dijkstra for 3 best paths - alternative to yen's algo
-    def Dijkstra_general(self,G,source,target,amt):
+    def Dijkstra_general(self,G,source,target,amt, payment_source, target_delay):
         paths = {}
         paths1 = {}
         paths2 = {}
@@ -118,9 +118,9 @@ class EclairRouting(Routing):
         dist[target] = 0
         dist1[target] = 0
         dist2[target] = 0
-        delay[target] = 0
-        delay1[target] = 0
-        delay2[target] = 0
+        delay[target] = target_delay
+        delay1[target] = target_delay
+        delay2[target] = target_delay
         # print(dist[target])
         paths[target] = [target]
         paths1[target] = [target]
@@ -158,7 +158,7 @@ class EclairRouting(Routing):
                 di = dist2[curr]
             visited[curr]+=1
             for [v, curr] in G.in_edges(curr):
-                if v == source and G.edges[v, curr]["Balance"] >= a:
+                if payment_source and v == source and G.edges[v, curr]["Balance"] >= a:
                     #return [v] + paths[curr], delay[curr] + G.edges[v, curr]["Delay"], amount[curr], dist[curr]
                     path[k]= [v] + p
                     k+=1
@@ -166,38 +166,39 @@ class EclairRouting(Routing):
                         # print(path)
                         return path
                 if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= a) and visited[v]<3 and v not in p:
-                    cost = di + self.cost_function(G, a, curr, v)
+                    if (v != source or not payment_source):
+                        cost = di + self.cost_function(G, a, curr, v)
 
-                    if cost < dist[v]:
-                        dist2[v] = dist1[v]
-                        paths2[v] = paths1[v]
-                        delay2[v] = delay1[v]
-                        amount2[v] = amount1[v]
-                        dist1[v] = dist[v]
-                        paths1[v] = paths[v]
-                        delay1[v] = delay[v]
-                        amount1[v] = amount[v]
-                        dist[v] = cost
-                        paths[v] = [v] + p
-                        delay[v] = G.edges[v, curr]["Delay"] + d
-                        amount[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
-                        pq.put((dist[v], v))
-                    elif cost < dist1[v]:
-                        dist2[v] = dist1[v]
-                        paths2[v] = paths1[v]
-                        delay2[v] = delay1[v]
-                        amount2[v] = amount1[v]
-                        dist1[v] = cost
-                        paths1[v] = [v] + p
-                        delay1[v] = G.edges[v, curr]["Delay"] + d
-                        amount1[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
-                        pq.put((dist1[v], v))
-                    elif cost < dist2[v]:
-                        dist2[v] = cost
-                        paths2[v] = [v] + p
-                        delay2[v] = G.edges[v, curr]["Delay"] + d
-                        amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
-                        pq.put((dist2[v], v))
+                        if cost < dist[v]:
+                            dist2[v] = dist1[v]
+                            paths2[v] = paths1[v]
+                            delay2[v] = delay1[v]
+                            amount2[v] = amount1[v]
+                            dist1[v] = dist[v]
+                            paths1[v] = paths[v]
+                            delay1[v] = delay[v]
+                            amount1[v] = amount[v]
+                            dist[v] = cost
+                            paths[v] = [v] + p
+                            delay[v] = G.edges[v, curr]["Delay"] + d
+                            amount[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                            pq.put((dist[v], v))
+                        elif cost < dist1[v]:
+                            dist2[v] = dist1[v]
+                            paths2[v] = paths1[v]
+                            delay2[v] = delay1[v]
+                            amount2[v] = amount1[v]
+                            dist1[v] = cost
+                            paths1[v] = [v] + p
+                            delay1[v] = G.edges[v, curr]["Delay"] + d
+                            amount1[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                            pq.put((dist1[v], v))
+                        elif cost < dist2[v]:
+                            dist2[v] = cost
+                            paths2[v] = [v] + p
+                            delay2[v] = G.edges[v, curr]["Delay"] + d
+                            amount2[v] = a + G.edges[v, curr]["BaseFee"] + a * G.edges[v, curr]["FeeRate"]
+                            pq.put((dist2[v], v))
         return [], -1, -1, -1
 
     # normalize between max and min
@@ -292,13 +293,13 @@ class EclairRouting(Routing):
                 di = dist2[curr]
             visited[curr] += 1
             for [v, curr] in G.in_edges(curr):
-                if done[v] == 0 and G.nodes[v]["Tech"] == 2: # TODO remove tech?
+                if done[v] == 0 and (self.ignore_tech or G.nodes[v]["Tech"] == 2):
                     path0[v] = [v] + p
                     done[v] = 1
-                elif done[v] == 1 and G.nodes[v]["Tech"] == 2:
+                elif done[v] == 1 and (self.ignore_tech or G.nodes[v]["Tech"] == 2):
                     path1[v] = [v] + p
                     done[v] = 2
-                elif done[v] == 2 and G.nodes[v]["Tech"] == 2:
+                elif done[v] == 2 and (self.ignore_tech or G.nodes[v]["Tech"] == 2):
                     path2[v] = [v] + p
                     done[v] = 3
                 if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= a) and visited[v] < 3 and v not in p:
@@ -351,12 +352,12 @@ class EclairRouting(Routing):
                     visited[curr] = 3
                     # If pre is not an intermediary, then it must be the source
                 if paths[pre] != path and paths1[pre]!=path and paths2[pre]!=path:
-                    if G.nodes[pre]["Tech"] != 2:
+                    if (not self.ignore_tech and G.nodes[pre]["Tech"] != 2):
                         return None
                     return [pre]
                 else:
                     # pre could still be a source
-                    if G.nodes[pre]["Tech"] == 2:
+                    if (self.ignore_tech or G.nodes[pre]["Tech"] == 2):
                         sources.append(pre)
                     flag2 = 1
                 # print(paths[curr], paths1[curr], paths2[curr])
@@ -364,7 +365,7 @@ class EclairRouting(Routing):
                     # fill remaining possible sources
                     if pre in p:
                         for [v, curr] in G.in_edges(curr):
-                            if v not in p and G.nodes[v]["Tech"] == 2:
+                            if v not in p and (self.ignore_tech or G.nodes[v]["Tech"] == 2):
                                 sources.append(v)
     #                     ind = p.index(pre)
     #                     if p[ind:] == pa:

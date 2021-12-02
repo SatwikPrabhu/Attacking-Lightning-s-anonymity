@@ -4,23 +4,9 @@ import nested_dict as nd
 
 
 class Routing:
-    def __init__(self):
-        pass
-
-    # # cost function, should be overwritten by child
-    # def cost_function(self, G, amount, u, v):
-    #     print("error")
-    #     pass
-
-    # # cost function for first hop: sender does not take a fee
-    # # should be overwritten by child
-    # def cost_function_no_fees(self, G, amount, dist, u, v):
-    #     print("error")
-    #     pass
-
-    # def route(self, G):
-    #     print("error")
-    #     pass
+    def __init__(self, ignore_tech = True):
+        self.ignore_tech = ignore_tech
+        self.collab = False
 
     # Dijkstra's routing algorithm for finding the shortest path
     def Dijkstra(self, G, source, target, amt, payment_source=True, target_delay=0):
@@ -70,7 +56,7 @@ class Routing:
 
 
     # adversarial attack
-    def adversarial_attack(self, G,adversary,delay,amount,pre,next, attack_position = -1):
+    def adversarial_attack(self, G,adversary,delay,amount,pre,next, attack_position = -1, shadow_routing = False):
         T = nd.nested_dict()
         anon_sets = nd.nested_dict()
         flag1 = True
@@ -120,7 +106,7 @@ class Routing:
             a = T[level]["amounts"]
             v = T[level]["visited"]
             for i in range(0, len(t)):
-                if(d[i] == 0):
+                if d[i] == 0 or (shadow_routing and d[i] >= 0):
                     path = []
                     level1 = level
                     path.append(T[level1]["nodes"][i])
@@ -136,7 +122,7 @@ class Routing:
                         dl = d[i]
                         pot = path[len(path) - 1]
                         sources = self.deanonymize(G,pot,path,amt,dl)
-                        if sources != None:
+                        if sources != None and len(sources) > 0:
                             anon_sets[pot] = list(sources)
             level = level - 1
         return anon_sets, flag1
@@ -180,7 +166,7 @@ class Routing:
             visited.add(curr)
             for [v,curr] in G.in_edges(curr):
                 if (G.edges[v, curr]["Balance"] + G.edges[curr, v]["Balance"] >= costs[curr]) and v not in visited:
-                    if done[v] == 0 and G.nodes[v]["Tech"] == self.tech(): #TODO remove tech constraint? also unused
+                    if done[v] == 0 and (G.nodes[v]["Tech"] == self.tech() or self.ignore_tech):
                         paths1[v] = [v]+paths[curr]
                         done[v] = 1
                     cost = dists[curr] + self.cost_function(G,costs[curr],curr,v)
@@ -193,7 +179,7 @@ class Routing:
             if(curr in path[1:]):
                 ind = path.index(curr)
                 if(paths[curr]!=path[ind:]):
-                    return None # TODO double check vs return []
+                    return None
                 if curr == adv:
                     flag1 = 1
             if(curr == pre):
@@ -205,7 +191,7 @@ class Routing:
             if flag1 == 1 and flag2 == 1:
                 if pre in paths[curr]:
                     for [v,curr] in G.in_edges(curr): 
-                            if v not in paths[curr] and G.nodes[v]["Tech"] == self.tech(): # TODO remove tech constraint?
+                            if v not in paths[curr] and (G.nodes[v]["Tech"] == self.tech() or self.ignore_tech):
                                 sources.append(v)
         sources = set(sources)
         return sources

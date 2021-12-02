@@ -7,8 +7,8 @@ class LNDRouting(Routing):
     A_PRIORI_PROB = 0.6
 
     # Initialize routing algorithm
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, ignore_tech = True) -> None:
+        super().__init__(ignore_tech)
 
     # human-readable name for routing algorithm
     def name(self):
